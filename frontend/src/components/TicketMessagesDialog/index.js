@@ -17,9 +17,7 @@ import MessagesList from "../MessagesList";
 import { ReplyMessageProvider } from "../../context/ReplyingMessage/ReplyingMessageContext";
 import TicketHeader from "../TicketHeader";
 import TicketInfo from "../TicketInfo";
-import { SocketContext } from "../../context/Socket/SocketContext";
-import { ForwardMessageContext } from "../../context/ForwarMessage/ForwardMessageContext";
-
+import { socketConnection } from "../../services/socket";
 
 const drawerWidth = 320;
 
@@ -68,9 +66,6 @@ export default function TicketMessagesDialog({ open, handleClose, ticketId }) {
   const [loading, setLoading] = useState(true);
   const [contact, setContact] = useState({});
   const [ticket, setTicket] = useState({});
-  const { showSelectMessageCheckbox } = useContext(ForwardMessageContext);
-
-  const socketManager = useContext(SocketContext);
 
   useEffect(() => {
     let delayDebounceFn = null;
@@ -113,7 +108,7 @@ export default function TicketMessagesDialog({ open, handleClose, ticketId }) {
     let socket = null;
 
     if (open) {
-      socket = socketManager.getSocket(companyId);
+      socket = socketConnection({ companyId });
       socket.on("connect", () => socket.emit("joinChatBox", `${ticket.id}`));
 
       socket.on(`company-${companyId}-ticket`, (data) => {
@@ -122,7 +117,7 @@ export default function TicketMessagesDialog({ open, handleClose, ticketId }) {
         }
 
         if (data.action === "delete") {
-          // toast.success("Ticket deleted sucessfully.");
+          toast.success("Ticket deleted sucessfully.");
           history.push("/tickets");
         }
       });
@@ -144,7 +139,7 @@ export default function TicketMessagesDialog({ open, handleClose, ticketId }) {
         socket.disconnect();
       }
     };
-  }, [ticketId, ticket, history, open, socketManager]);
+  }, [ticketId, ticket, history, open]);
 
   const handleDrawerOpen = () => {
     setDrawerOpen(true);
@@ -169,7 +164,6 @@ export default function TicketMessagesDialog({ open, handleClose, ticketId }) {
           ticket={ticket}
           ticketId={ticket.id}
           isGroup={ticket.isGroup}
-          user={user}
         ></MessagesList>
       </Box>
     );

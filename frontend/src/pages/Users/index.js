@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useReducer, useContext } from "react";
+import React, { useState, useEffect, useReducer } from "react";
 import { toast } from "react-toastify";
 
 import { makeStyles } from "@material-ui/core/styles";
@@ -28,8 +28,7 @@ import TableRowSkeleton from "../../components/TableRowSkeleton";
 import UserModal from "../../components/UserModal";
 import ConfirmationModal from "../../components/ConfirmationModal";
 import toastError from "../../errors/toastError";
-import { SocketContext } from "../../context/Socket/SocketContext";
-import { Tooltip } from "@material-ui/core";
+import { socketConnection } from "../../services/socket";
 
 const reducer = (state, action) => {
   if (action.type === "LOAD_USERS") {
@@ -87,7 +86,6 @@ const useStyles = makeStyles((theme) => ({
 const Users = () => {
   const classes = useStyles();
 
-
   const [loading, setLoading] = useState(false);
   const [pageNumber, setPageNumber] = useState(1);
   const [hasMore, setHasMore] = useState(false);
@@ -97,8 +95,6 @@ const Users = () => {
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [searchParam, setSearchParam] = useState("");
   const [users, dispatch] = useReducer(reducer, []);
-
-  const socketManager = useContext(SocketContext);
 
   useEffect(() => {
     dispatch({ type: "RESET" });
@@ -127,7 +123,7 @@ const Users = () => {
 
   useEffect(() => {
     const companyId = localStorage.getItem("companyId");
-    const socket = socketManager.getSocket(companyId);
+    const socket = socketConnection({ companyId });
 
     socket.on(`company-${companyId}-user`, (data) => {
       if (data.action === "update" || data.action === "create") {
@@ -142,7 +138,7 @@ const Users = () => {
     return () => {
       socket.disconnect();
     };
-  }, [socketManager]);
+  }, []);
 
   const handleOpenUserModal = () => {
     setSelectedUser(null);
@@ -186,50 +182,14 @@ const Users = () => {
       loadMore();
     }
   };
-  // Componente para renderizar quadrados de fila
-  function QueueSquare({ queue }) {
-    // Define um estilo para o quadrado com a cor da fila
-    const squareStyle = {
-      width: '20px',
-      height: '20px',
-      backgroundColor: queue.color, // Supondo que cada fila tenha uma propriedade 'color'
-      display: 'inline-block',
-      marginRight: '5px',
-      borderRadius: '3px',
-      textAlign: 'center',
-      lineHeight: '20px',
-      color: '#fff', // Cor do texto dentro do quadrado
-    };
 
-    // Pega apenas a inicial do nome da fila
-    const queueInitial = queue.name.charAt(0);
-
-    return (
-      <Tooltip title={queue.name}>
-        <div style={squareStyle}>
-          {queueInitial}
-        </div>
-      </Tooltip>
-
-    );
-  }
-
-  // Componente para renderizar as filas de um usuário
-  function UserQueues({ queues }) {
-    return (
-      <div>
-        {queues.map((queue, index) => (
-          <QueueSquare key={index} queue={queue} />
-        ))}
-      </div>
-    );
-  }
   return (
     <MainContainer>
       <ConfirmationModal
         title={
           deletingUser &&
-          `${i18n.t("users.confirmationModal.deleteTitle")} ${deletingUser.name
+          `${i18n.t("users.confirmationModal.deleteTitle")} ${
+            deletingUser.name
           }?`
         }
         open={confirmModalOpen}
@@ -277,25 +237,25 @@ const Users = () => {
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell align="center">{i18n.t("users.table.id")}</TableCell>
               <TableCell align="center">{i18n.t("users.table.name")}</TableCell>
-              <TableCell align="center">{i18n.t("users.table.email")}</TableCell>
-              <TableCell align="center">{i18n.t("users.table.profile")}</TableCell>
-              <TableCell align="center">{i18n.t("users.table.rating")}</TableCell>
-              <TableCell align="center">{i18n.t("users.table.queues")}</TableCell>
-              <TableCell align="center">{i18n.t("users.table.actions")}</TableCell>
+              <TableCell align="center">
+                {i18n.t("users.table.email")}
+              </TableCell>
+              <TableCell align="center">
+                {i18n.t("users.table.profile")}
+              </TableCell>
+              <TableCell align="center">
+                {i18n.t("users.table.actions")}
+              </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             <>
               {users.map((user) => (
                 <TableRow key={user.id}>
-                  <TableCell align="center">{user.id}</TableCell>
                   <TableCell align="center">{user.name}</TableCell>
                   <TableCell align="center">{user.email}</TableCell>
                   <TableCell align="center">{user.profile}</TableCell>
-                  <TableCell align="center">{user?.averageRating}</TableCell>
-                  <TableCell align="center"><UserQueues queues={user.queues} /></TableCell>
                   <TableCell align="center">
                     <IconButton
                       size="small"

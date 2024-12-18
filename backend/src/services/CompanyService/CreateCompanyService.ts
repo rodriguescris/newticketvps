@@ -165,19 +165,6 @@ const CreateCompanyService = async (
     },
   });
 
-  // Permitir perfil user ver tickets sem fila
-  await Setting.findOrCreate({
-    where: {
-      companyId: company.id,
-      key: "userViewTicketsWithoutQueue"
-    },
-    defaults: {
-      companyId: company.id,
-      key: "disabled",
-      value: ""
-    },
-  });
-
   //CheckMsgIsGroup
   await Setting.findOrCreate({
     where: {
@@ -217,7 +204,7 @@ const CreateCompanyService = async (
       value: "disabled"
     },
   });
-
+  
  // Enviar mensagem de transferencia
     await Setting.findOrCreate({
 	where:{

@@ -29,6 +29,7 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
   const { name, color, greetingMessage, outOfHoursMessage, schedules, orderQueue, integrationId, promptId } =
     req.body;
   const { companyId } = req.user;
+  console.log("queue", integrationId, promptId)
   const queue = await CreateQueueService({
     name,
     color,
@@ -42,7 +43,7 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
   });
 
   const io = getIO();
-  io.to(`company-${companyId}-mainchannel`).emit(`company-${companyId}-queue`, {
+  io.emit(`company-${companyId}-queue`, {
     action: "update",
     queue
   });
@@ -79,7 +80,7 @@ export const update = async (
   }, companyId);
 
   const io = getIO();
-  io.to(`company-${companyId}-mainchannel`).emit(`company-${companyId}-queue`, {
+  io.emit(`company-${companyId}-queue`, {
     action: "update",
     queue
   });
@@ -97,7 +98,7 @@ export const remove = async (
   await DeleteQueueService(queueId, companyId);
 
   const io = getIO();
-  io.to(`company-${companyId}-mainchannel`).emit(`company-${companyId}-queue`, {
+  io.emit(`company-${companyId}-queue`, {
     action: "delete",
     queueId: +queueId
   });

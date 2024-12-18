@@ -4,7 +4,6 @@ import isAuth from "../middleware/isAuth";
 import * as AnnouncementController from "../controllers/AnnouncementController";
 import multer from "multer";
 import uploadConfig from "../config/upload";
-import isSuper from "../middleware/isSuper";
 
 const upload = multer(uploadConfig);
 
@@ -16,22 +15,22 @@ routes.get("/announcements", isAuth, AnnouncementController.index);
 
 routes.get("/announcements/:id", isAuth, AnnouncementController.show);
 
-routes.post("/announcements", isAuth, isSuper, AnnouncementController.store);
+routes.post("/announcements", isAuth, AnnouncementController.store);
 
-routes.put("/announcements/:id", isAuth, isSuper, AnnouncementController.update);
+routes.put("/announcements/:id", isAuth, AnnouncementController.update);
 
-routes.delete("/announcements/:id", isAuth, isSuper, AnnouncementController.remove);
+routes.delete("/announcements/:id", isAuth, AnnouncementController.remove);
 
 routes.post(
   "/announcements/:id/media-upload",
-  isAuth, isSuper,
+  isAuth,
   upload.array("file"),
   AnnouncementController.mediaUpload
 );
 
 routes.delete(
   "/announcements/:id/media-upload",
-  isAuth, isSuper,
+  isAuth,
   AnnouncementController.deleteMedia
 );
 

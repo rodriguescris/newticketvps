@@ -79,12 +79,6 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
 export const show = async (req: Request, res: Response): Promise<Response> => {
   const { id } = req.params;
 
-  const requestUser = await User.findByPk(req.user.id);
-
-  if ( !requestUser.super && Number.parseInt(id, 10) !== requestUser.companyId ) {
-    throw new AppError("ERR_FORBIDDEN", 403);
-  }
-
   const company = await ShowCompanyService(id);
 
   return res.status(200).json(company);
@@ -125,12 +119,6 @@ export const updateSchedules = async (
 ): Promise<Response> => {
   const { schedules }: SchedulesData = req.body;
   const { id } = req.params;
-
-  const requestUser = await User.findByPk(req.user.id);
-
-  if ( !requestUser.super && Number.parseInt(id, 10) !== requestUser.companyId ) {
-    throw new AppError("ERR_FORBIDDEN", 403);
-  }
 
   const company = await UpdateSchedulesService({
     id,

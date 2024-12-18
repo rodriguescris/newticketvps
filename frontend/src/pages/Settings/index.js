@@ -10,7 +10,7 @@ import { toast } from "react-toastify";
 import api from "../../services/api";
 import { i18n } from "../../translate/i18n.js";
 import toastError from "../../errors/toastError";
-import { SocketContext } from "../../context/Socket/SocketContext";
+import { socketConnection } from "../../services/socket";
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -38,8 +38,6 @@ const Settings = () => {
 
   const [settings, setSettings] = useState([]);
 
-  const socketManager = useContext(SocketContext);
-
   useEffect(() => {
     const fetchSession = async () => {
       try {
@@ -54,7 +52,7 @@ const Settings = () => {
 
   useEffect(() => {
     const companyId = localStorage.getItem("companyId");
-    const socket = socketManager.getSocket(companyId);
+    const socket = socketConnection({ companyId });
 
     socket.on(`company-${companyId}-settings`, (data) => {
       if (data.action === "update") {
@@ -70,7 +68,7 @@ const Settings = () => {
     return () => {
       socket.disconnect();
     };
-  }, [socketManager]);
+  }, []);
 
   const handleChangeSetting = async (e) => {
     const selectedValue = e.target.value;

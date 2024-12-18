@@ -60,6 +60,7 @@ class Message extends Model<Message> {
   @Column
   isDeleted: boolean;
 
+  @CreatedAt
   @Column(DataType.DATE(6))
   createdAt: Date;
 
@@ -101,14 +102,10 @@ class Message extends Model<Message> {
 
   @BelongsTo(() => Queue)
   queue: Queue;
-
+  
   @Default(false)
   @Column
   isEdited: boolean;
-
-  @Default(false)
-  @Column
-  isForwarded: boolean;
 }
 
 export default Message;

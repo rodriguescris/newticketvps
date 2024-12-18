@@ -54,7 +54,6 @@ const messages = {
 					disconnectMessage: "Estás seguro? Deberá volver a leer el código QR",
 				},
 				buttons: {
-					support: "Soporte",
 					add: "Agrega WhatsApp",
 					disconnect: "Desconectar",
 					tryAgain: "Inténtalo de nuevo",
@@ -259,13 +258,8 @@ const messages = {
 					administration: "Administración",
 					users: "Usuarios",
 					settings: "Configuración",
-					logout: "Cerrar sesión",
 				},
 				appBar: {
-					i18n: {
-						language: "Español",
-						language_short: "ES"
-					},
 					user: {
 						profile: "Perfil",
 						logout: "Cerrar Sesión",

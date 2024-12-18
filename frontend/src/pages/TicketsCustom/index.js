@@ -6,20 +6,17 @@ import { makeStyles } from "@material-ui/core/styles";
 
 import TicketsManager from "../../components/TicketsManagerTabs/";
 import Ticket from "../../components/Ticket/";
-import logo from "../../assets/logo.png"; //PLW DESIGN LOGO//
-import { i18n } from "../../translate/i18n";
+import logo from "../../assets/logo.png";
 
 const useStyles = makeStyles(theme => ({
 	chatContainer: {
 		flex: 1,
-		// backgroundColor: "#eee",
-		padding: theme.spacing(1), //Aqui ele ajusta espaço na tela de ticket
+		padding: theme.spacing(1),
 		height: `calc(100% - 48px)`,
 		overflowY: "hidden",
 	},
 
 	chatPapper: {
-		// backgroundColor: "red",
 		display: "flex",
 		height: "100%",
 	},
@@ -36,7 +33,7 @@ const useStyles = makeStyles(theme => ({
 		flexDirection: "column",
 	},
 	welcomeMsg: {
-		backgroundColor: theme.palette.boxticket, //DARK MODE PLW DESIGN//
+		backgroundColor: theme.palette.boxticket,
 		display: "flex",
 		justifyContent: "space-evenly",
 		alignItems: "center",
@@ -52,27 +49,24 @@ const TicketsCustom = () => {
 	return (
 		<div className={classes.chatContainer}>
 			<div className={classes.chatPapper}>
-					<Grid container spacing={0}>
-						<Grid item xs={4} className={classes.contactsWrapper}>
-							<TicketsManager />
-						</Grid>
-						<Grid item xs={8} className={classes.messagesWrapper}>
-							{ticketId ? (
-								<>
-									<Ticket />
-								</>
-							) : (
-								<Paper square variant="outlined" className={classes.welcomeMsg}>
-									{/* PLW DESIGN LOGO */}
-									<div>
-										<center><img style={{ margin: "0 auto", width: "70%" }} src={logo} alt="logologin" /></center>
-									</div>
-									{/* PLW DESIGN LOGO */}
-									{/*<span>{i18n.t("chat.noTicketMessage")}</span>*/}
-								</Paper>
-							)}
-						</Grid>
+				<Grid container spacing={0}>
+					<Grid item xs={4} className={classes.contactsWrapper}>
+						<TicketsManager />
 					</Grid>
+					<Grid item xs={8} className={classes.messagesWrapper}>
+						{ticketId ? (
+							<>
+								<Ticket />
+							</>
+						) : (
+							<Paper square variant="outlined" className={classes.welcomeMsg}>
+							<div>
+							<center><img style={{ margin: "0 auto", width: "70%" }} src={logo} alt="logologin" /></center>
+							</div>
+							</Paper>
+						)}
+					</Grid>
+				</Grid>
 			</div>
 		</div>
 	);

@@ -42,8 +42,7 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     profile,
     companyId: bodyCompanyId,
     queueIds,
-    whatsappId,
-    wpp
+    whatsappId
   } = req.body;
   let userCompanyId: number | null = null;
 
@@ -68,12 +67,11 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     profile,
     companyId: bodyCompanyId || userCompanyId,
     queueIds,
-    whatsappId,
-    wpp,
+    whatsappId
   });
 
   const io = getIO();
-  io.to(`company-${userCompanyId}-mainchannel`).emit(`company-${userCompanyId}-user`, {
+  io.emit(`company-${userCompanyId}-user`, {
     action: "create",
     user
   });
@@ -84,7 +82,7 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
 export const show = async (req: Request, res: Response): Promise<Response> => {
   const { userId } = req.params;
 
-  const user = await ShowUserService(userId, req.user.id);
+  const user = await ShowUserService(userId);
 
   return res.status(200).json(user);
 };
@@ -93,6 +91,10 @@ export const update = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
+  if (req.user.profile !== "admin") {
+    throw new AppError("ERR_NO_PERMISSION", 403);
+  }
+
   const { id: requestUserId, companyId } = req.user;
   const { userId } = req.params;
   const userData = req.body;
@@ -100,11 +102,12 @@ export const update = async (
   const user = await UpdateUserService({
     userData,
     userId,
+    companyId,
     requestUserId: +requestUserId
   });
 
   const io = getIO();
-  io.to(`company-${companyId}-mainchannel`).emit(`company-${companyId}-user`, {
+  io.emit(`company-${companyId}-user`, {
     action: "update",
     user
   });
@@ -123,10 +126,10 @@ export const remove = async (
     throw new AppError("ERR_NO_PERMISSION", 403);
   }
 
-  await DeleteUserService(userId, req.user.id);
+  await DeleteUserService(userId, companyId);
 
   const io = getIO();
-  io.to(`company-${companyId}-mainchannel`).emit(`company-${companyId}-user`, {
+  io.emit(`company-${companyId}-user`, {
     action: "delete",
     userId
   });

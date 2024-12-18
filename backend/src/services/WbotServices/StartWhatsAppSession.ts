@@ -6,14 +6,14 @@ import wbotMonitor from "./wbotMonitor";
 import { logger } from "../../utils/logger";
 import * as Sentry from "@sentry/node";
 
-export const StartWhatsAppSession = async (whatsapp: Whatsapp, companyId: number): Promise<void> => {
-
-
+export const StartWhatsAppSession = async (
+  whatsapp: Whatsapp,
+  companyId: number
+): Promise<void> => {
   await whatsapp.update({ status: "OPENING" });
 
   const io = getIO();
-
-  io.to(`company-${companyId}-mainchannel`).emit(`company-${companyId}-whatsappSession`, {
+  io.emit("whatsappSession", {
     action: "update",
     session: whatsapp
   });

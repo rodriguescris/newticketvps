@@ -14,8 +14,6 @@ interface MessageData {
   mediaUrl?: string;
   ack?: number;
   queueId?: number;
-  ticketImported?: any;
-  isForwarded?: boolean;
 }
 interface Request {
   messageData: MessageData;
@@ -61,19 +59,16 @@ const CreateMessageService = async ({
   }
 
   const io = getIO();
-  if (!messageData?.ticketImported) {
-    io.to(message.ticketId.toString())
-      .to(`company-${companyId}-${message.ticket.status}`)
-      .to(`company-${companyId}-notification`)
-      .to(`queue-${message.ticket.queueId}-${message.ticket.status}`)
-      .to(`queue-${message.ticket.queueId}-notification`)
-      .emit(`company-${companyId}-appMessage`, {
-        action: "create",
-        message,
-        ticket: message.ticket,
-        contact: message.ticket.contact
-      });
-  }
+  io.to(message.ticketId.toString())
+    .to(message.ticket.status)
+    .to("notification")
+    .emit(`company-${companyId}-appMessage`, {
+      action: "create",
+      message,
+      ticket: message.ticket,
+      contact: message.ticket.contact
+    });
+
   return message;
 };
 

@@ -74,7 +74,6 @@ const UserModal = ({ open, onClose, userId }) => {
 		email: "",
 		password: "",
 		profile: "user",
-		wpp: "",
 	};
 
 	const { user: loggedInUser } = useContext(AuthContext);
@@ -175,7 +174,6 @@ const UserModal = ({ open, onClose, userId }) => {
 										fullWidth
 									/>
 								</div>
-
 								<div className={classes.multFieldLine}>
 									<Field
 										as={TextField}
@@ -217,22 +215,6 @@ const UserModal = ({ open, onClose, userId }) => {
 										/>
 									</FormControl>
 								</div>
-
-								<div className={classes.multFieldLine}>
-									<Field
-										as={TextField}
-										label={i18n.t("contactModal.form.number")}
-										name="wpp"
-										placeholder="5513912344321"
-										error={touched.wpp && Boolean(errors.wpp)}
-										helperText={touched.wpp && errors.wpp}
-										variant="outlined"
-										margin="dense"
-										fullWidth
-									/>
-
-								</div>
-
 								<Can
 									role={loggedInUser.profile}
 									perform="user-modal:editQueues"

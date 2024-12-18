@@ -25,7 +25,7 @@ const messages = {
         },
         buttons: {
           submit: "Entrar",
-          register: "Não tem um conta? Cadastre-se!",
+          register: "Registre-se, agora mesmo!",
         },
       },
       plans: {
@@ -74,9 +74,6 @@ const messages = {
           deleted: "Conexão com o WhatsApp excluída com sucesso!",
         },
         confirmationModal: {
-          closedImportedTitle: "Fechar tickets importados",
-          closedImportedMessage:
-            "Se você confirmar todos os tickets importados serão fechados",
           deleteTitle: "Deletar",
           deleteMessage: "Você tem certeza? Essa ação não pode ser revertida.",
           disconnectTitle: "Desconectar",
@@ -84,21 +81,12 @@ const messages = {
             "Tem certeza? Você precisará ler o QR Code novamente.",
         },
         buttons: {
-          support: "Suporte",
           add: "Adicionar WhatsApp",
           disconnect: "desconectar",
           tryAgain: "Tentar novamente",
           qrcode: "QR CODE",
           newQr: "Novo QR CODE",
           connecting: "Conectando",
-          closedImported: "Fechar todos os tickets Importados",
-          preparing: "Preparando mensagens para importação",
-          importing: "Importando Mensagens do WhatsApp",
-        },
-        typography: {
-          processed: "Processado",
-          in: "de",
-          date: "Data da mensagem",
         },
         toolTips: {
           disconnected: {
@@ -146,17 +134,6 @@ const messages = {
           timeUseBotQueues: "Intervalo em minutos entre envio de bot",
           expiresTicket: "Encerrar chats abertos após x minutos",
           expiresInactiveMessage: "Mensagem de encerramento por inatividade",
-          importAlert:
-            "ATENÇÃO: Ao salvar, sua conexão será encerrada, será necessário ler novamente o QR Code para importar as mensagens",
-          importOldMessagesEnable: "Importar mensagens do aparelho",
-          importOldMessages: "Data de inicio da importação",
-          importRecentMessages: "Data de termino da importação",
-          importOldMessagesGroups: "Importar mensagens de grupo",
-          closedTicketsPostImported: "Encerrar tickets após importação",
-        },
-        confirmation: {
-          title: "Remover anexo",
-          message: "Está opção não pode ser revertida. Deseja continuar?",
         },
         buttons: {
           okAdd: "Adicionar",
@@ -180,14 +157,10 @@ const messages = {
           deleteMessage:
             "Tem certeza que deseja deletar este contato? Todos os atendimentos relacionados serão perdidos.",
           importMessage: "Deseja importar todos os contatos do telefone?",
-          deleteAllMessage:
-            "Tem certeza que deseja deletar todos os contatos dessa empresa? Todos os atendimentos relacionados serão perdidos.",
-          deleteTitleAll: "Deletar todos os contatos",
         },
         buttons: {
           import: "Importar Contatos",
           add: "Adicionar Contato",
-          remove: "Deletar todos os contatos",
         },
         table: {
           name: "Nome",
@@ -215,7 +188,7 @@ const messages = {
           typebotKeywordRestart: "Palavra para reiniciar o fluxo",
           typebotRestartMessage: "Mensagem ao reiniciar a conversa",
           typebotUnknownMessage: "Mensagem de opção inválida",
-          typebotDelayMessage: "Intervalo (ms) entre mensagens",
+          typebotDelayMessage: "Intervalo (ms) entre mensagens",   
         },
         buttons: {
           okAdd: "Adicionar",
@@ -268,18 +241,6 @@ const messages = {
           add: "Adicionar Prompt",
         },
       },
-      passwordReset: {
-        title: "Redefinir senha",
-        voltar: "Voltar para tela de login",
-        form: {
-          email: "Email",
-        },
-        buttons: {
-          submit: "Verificar Email",
-          verify: "Verificar Código"
-        },
-
-      },
       contactModal: {
         title: {
           add: "Adicionar contato",
@@ -293,7 +254,6 @@ const messages = {
           email: "Email",
           extraName: "Nome do campo",
           extraValue: "Valor",
-          chatBotContact: "Desabilitar chatbot",
           whatsapp: "Conexão Origem: "
         },
         buttons: {
@@ -319,29 +279,11 @@ const messages = {
           token: "Token",
           orderQueue: "Ordem da fila (Bot)",
           integrationId: "Integração",
-          closeTicket: "Fechar ticket"
         },
         buttons: {
           okAdd: "Adicionar",
           okEdit: "Salvar",
           cancel: "Cancelar",
-        },
-        bot: {
-          title: "Opções",
-          toolTipTitle: "Adicione opções para construir um chatbot",
-          toolTip: "Se houver apenas uma opção, ela será escolhida automaticamente, fazendo com que o bot responda com a mensagem da opção e siga adiante",
-          selectOption: "Selecione uma opção",
-          text: "Texto",
-          attendent: "Atendente",
-          queue: "Fila",
-          integration: "Integração",
-          file: "Arquivo",
-          toolTipMessageTitle: "A mensagem é obrigatória para seguir ao próximo nível",
-          toolTipMessageContent: "A mensagem é obrigatória para seguir ao próximo nível",
-          selectUser: "Selecione um Usuário",
-          selectQueue: "Selecione uma Fila",
-          selectIntegration: "Selecione uma Integração",
-          addOptions: "Adicionar opções",
         },
       },
       userModal: {
@@ -408,24 +350,13 @@ const messages = {
       },
       ticketsManager: {
         buttons: {
-          newTicket: "+",
-          closeallTicket: "Fechar todos"
+          newTicket: "Novo",
         },
       },
       ticketsQueueSelect: {
         placeholder: "Filas",
       },
-
       tickets: {
-        inbox: {
-          closedAllTickets: "Fechar todos os tickets?",
-          closedAll: "Fechar Todos",
-          newTicket: "Novo Ticket",
-          yes: "SIM",
-          no: "NÃO",
-          open: "Abertos",
-          resolverd: "Resolvidos",
-        },
         toasts: {
           deleted: "O atendimento que você estava foi deletado.",
         },
@@ -434,22 +365,11 @@ const messages = {
         },
         tabs: {
           open: { title: "Abertas" },
-          group: { title: "Grupos" },
           closed: { title: "Resolvidos" },
           search: { title: "Busca" },
         },
         search: {
           placeholder: "Buscar atendimento e mensagens",
-          filterConnections: "Filtro por conexões",
-          filterContacts: "Filtro por contato",
-          filterConections: "Filtro por Conexão",
-          filterConectionsOptions: {
-            open: "Aberto",
-            closed: "Fechado",
-            pending: "Pendente",
-          },
-          filterUsers: "Filtro por Usuarios",
-          ticketsPerPage: "Tickets por página"
         },
         buttons: {
           showAll: "Todos",
@@ -487,15 +407,6 @@ const messages = {
           cancel: "Cancelar",
         },
       },
-      contactImportWpModal: {
-        title: "Exportar Contatos para o Excel",
-        buttons: {
-          downloadModel: "Download modelo do excel para importação",
-          closed: "Fechar",
-          import: "Selecione o arquivo do excel para importar Contatos"
-        }
-
-      },
       mainDrawer: {
         listItems: {
           dashboard: "Dashboard",
@@ -518,22 +429,12 @@ const messages = {
           files: "Lista de arquivos",
           prompts: "Open.Ai",
           queueIntegration: "Integrações",
-          reports: "Relatórios",
-          logout: "Sair",
         },
         appBar: {
-          i18n: {
-            language: "Português",
-            language_short: "PT"
-          },
           user: {
             profile: "Perfil",
             logout: "Sair",
-            language: "Selecionar idioma",
           },
-          styleDark: "Modo escuro",
-          styleLight: "Modo claro",
-          language: "Idioma",
         },
       },
       queueIntegration: {
@@ -556,27 +457,6 @@ const messages = {
           deleteMessage:
             "Você tem certeza? Essa ação não pode ser revertida! e será removida das filas e conexões vinculadas",
         },
-      },
-      reports: {
-        title: "Relatórios de Atendimentos",
-        table: {
-          id: "Ticket",
-          user: "Usuário",
-          dateOpen: "Data Abertura",
-          dateClose: "Data Fechamento",
-          NPS: "NPS",
-          status: "Status",
-          whatsapp: "Conexão",
-          queue: "Fila",
-          actions: "Ações",
-          lastMessage: "Últ. Mensagem",
-          contact: "Cliente",
-          supportTime: "Tempo de Atendimento"
-        },
-        buttons: {
-          filter: "Aplicar Filtro",
-        },
-        searchPlaceholder: "Pesquisar...",
       },
       files: {
         title: "Lista de arquivos",
@@ -844,7 +724,6 @@ const messages = {
       queues: {
         title: "Filas & Chatbot",
         table: {
-          id: "ID",
           name: "Nome",
           color: "Cor",
           greeting: "Mensagem de saudação",
@@ -862,17 +741,13 @@ const messages = {
       },
       queueSelect: {
         inputLabel: "Filas",
-        withoutQueue: "Sem fila",
       },
       users: {
         title: "Usuários",
         table: {
-          id: "ID",
           name: "Nome",
           email: "Email",
           profile: "Perfil",
-          rating: "Avaliação",
-          queues: "Filas",
           actions: "Ações",
         },
         buttons: {
@@ -1016,9 +891,6 @@ const messages = {
       messageOptionsMenu: {
         delete: "Deletar",
         reply: "Responder",
-        edit: "Editar",
-        forward: "Encaminhar",
-        toForward: "Encaminhar",
         confirmationModal: {
           title: "Apagar mensagem?",
           message: "Esta ação não pode ser revertida.",

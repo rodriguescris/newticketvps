@@ -22,7 +22,6 @@ import UserQueue from "./UserQueue";
 import Company from "./Company";
 import QuickMessage from "./QuickMessage";
 import Whatsapp from "./Whatsapp";
-import UserRating from "./UserRating";
 
 @Table
 class User extends Model<User> {
@@ -57,9 +56,6 @@ class User extends Model<User> {
   @Column
   online: boolean;
 
-  @Column
-  wpp: string;
-
   @CreatedAt
   createdAt: Date;
 
@@ -85,10 +81,6 @@ class User extends Model<User> {
     hooks: true
   })
   quickMessages: QuickMessage[];
-
-  // Definindo a relação com UserRating
-  @HasMany(() => UserRating, 'userId') // 'userId' é o nome da chave estrangeira em UserRating que referencia o usuário
-  ratings: UserRating[];
 
   @ForeignKey(() => Whatsapp)
   @Column

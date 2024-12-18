@@ -13,16 +13,12 @@ import TicketInfo from "../TicketInfo";
 import TicketActionButtons from "../TicketActionButtonsCustom";
 import MessagesList from "../MessagesList";
 import api from "../../services/api";
-
 import { ReplyMessageProvider } from "../../context/ReplyingMessage/ReplyingMessageContext";
-import { ForwardMessageProvider } from "../../context/ForwarMessage/ForwardMessageContext";
-import { EditMessageProvider } from "../../context/EditingMessage/EditingMessageContext";
-
 import toastError from "../../errors/toastError";
 import { AuthContext } from "../../context/Auth/AuthContext";
 import { TagsContainer } from "../TagsContainer";
-import { SocketContext } from "../../context/Socket/SocketContext";
-import useSettings from '../../hooks/useSettings';
+import { socketConnection } from "../../services/socket";
+
 const drawerWidth = 320;
 
 const useStyles = makeStyles((theme) => ({
@@ -71,26 +67,18 @@ const Ticket = () => {
   const [loading, setLoading] = useState(true);
   const [contact, setContact] = useState({});
   const [ticket, setTicket] = useState({});
-  const { getAll } = useSettings();
-  
-  const socketManager = useContext(SocketContext);
 
   useEffect(() => {
     setLoading(true);
     const delayDebounceFn = setTimeout(() => {
       const fetchTicket = async () => {
         try {
-          const settings = await getAll();
-          const visibleTicket = settings.some((setting) => {
-            return (setting?.key === "userViewTicketsWithoutQueue" &&
-              setting?.value === "enabled")
-          });
           const { data } = await api.get("/tickets/u/" + ticketId);
           const { queueId } = data;
           const { queues, profile } = user;
 
           const queueAllowed = queues.find((q) => q.id === queueId);
-          if (queueAllowed === undefined && profile !== "admin" && !visibleTicket) {
+          if (queueAllowed === undefined && profile !== "admin") {
             toast.error("Acesso não permitido");
             history.push("/tickets");
             return;
@@ -111,17 +99,17 @@ const Ticket = () => {
 
   useEffect(() => {
     const companyId = localStorage.getItem("companyId");
-    const socket = socketManager.getSocket(companyId);
+    const socket = socketConnection({ companyId });
 
     socket.on("connect", () => socket.emit("joinChatBox", `${ticket.id}`));
 
     socket.on(`company-${companyId}-ticket`, (data) => {
-      if (data.action === "update" && data.ticketId === ticket.id) {
+      if (data.action === "update") {
         setTicket(data.ticket);
       }
 
-      if (data.action === "delete" && data.ticketId === ticket.id) {
-        // toast.success("Ticket deleted sucessfully.");
+      if (data.action === "delete") {
+        toast.success("Ticket deleted sucessfully.");
         history.push("/tickets");
       }
     });
@@ -140,7 +128,7 @@ const Ticket = () => {
     return () => {
       socket.disconnect();
     };
-  }, [ticketId, ticket, history, socketManager]);
+  }, [ticketId, ticket, history]);
 
   const handleDrawerOpen = () => {
     setDrawerOpen(true);
@@ -169,7 +157,6 @@ const Ticket = () => {
           ticket={ticket}
           ticketId={ticket.id}
           isGroup={ticket.isGroup}
-          user={user}
         ></MessagesList>
         <MessageInput ticketId={ticket.id} ticketStatus={ticket.status} />
       </>
@@ -192,13 +179,7 @@ const Ticket = () => {
         <Paper>
           <TagsContainer ticket={ticket} />
         </Paper>
-        <ReplyMessageProvider>
-          {/* <ForwardMessageProvider> */}
-          <EditMessageProvider>
-            {renderMessagesList()}
-          </EditMessageProvider>
-          {/* </ForwardMessageProvider> */}
-        </ReplyMessageProvider>
+        <ReplyMessageProvider>{renderMessagesList()}</ReplyMessageProvider>
       </Paper>
       <ContactDrawer
         open={drawerOpen}
@@ -207,7 +188,7 @@ const Ticket = () => {
         loading={loading}
         ticket={ticket}
       />
-    </div >
+    </div>
   );
 };
 

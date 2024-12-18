@@ -131,6 +131,7 @@ const TicketListItem = ({ ticket }) => {
     }
     history.push(`/tickets/${ticket.uuid}`);
   };
+  console.log("🚀 Console Log : ticket.lastMessage", ticket.lastMessage);
 
   const handleSelectTicket = (ticket) => {
     history.push(`/tickets/${ticket.uuid}`);

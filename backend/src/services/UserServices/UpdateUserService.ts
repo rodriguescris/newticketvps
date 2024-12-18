@@ -13,13 +13,13 @@ interface UserData {
   companyId?: number;
   queueIds?: number[];
   whatsappId?: number;
-  wpp?: string;
 
 }
 
 interface Request {
   userData: UserData;
   userId: string | number;
+  companyId: number;
   requestUserId: number;
 }
 
@@ -33,14 +33,15 @@ interface Response {
 const UpdateUserService = async ({
   userData,
   userId,
+  companyId,
   requestUserId
 }: Request): Promise<Response | undefined> => {
-  const user = await ShowUserService(userId, requestUserId);
+  const user = await ShowUserService(userId);
 
   const requestUser = await User.findByPk(requestUserId);
 
-  if (requestUser.super === false && userData.companyId !== requestUser.companyId) {
-    throw new AppError("ERR_FORBIDDEN", 403);
+  if (requestUser.super === false && userData.companyId !== companyId) {
+    throw new AppError("O usuário não pertence à esta empresa");
   }
 
   const schema = Yup.object().shape({
@@ -50,7 +51,7 @@ const UpdateUserService = async ({
     password: Yup.string()
   });
 
-  const { email, password, profile, name, queueIds = [], whatsappId, wpp } = userData;
+  const { email, password, profile, name, queueIds = [], whatsappId } = userData;
 
   try {
     await schema.validate({ email, password, profile, name });
@@ -58,21 +59,14 @@ const UpdateUserService = async ({
     throw new AppError(err.message);
   }
 
-  if (requestUser.profile === "admin") {
-    await user.update({
-      email,
-      password,
-      profile,
-      name
-    });
-    await user.$set("queues", queueIds);
-  } else {
-    await user.update({
-      email,
-      password,
-      name
-    });
-  }
+  await user.update({
+    email,
+    password,
+    profile,
+    name,
+    whatsappId: whatsappId || null,
+
+  });
 
   await user.$set("queues", queueIds);
 
@@ -87,8 +81,7 @@ const UpdateUserService = async ({
     profile: user.profile,
     companyId: user.companyId,
     company,
-    queues: user.queues,
-    wpp: user.wpp,
+    queues: user.queues
   };
 
   return serializedUser;

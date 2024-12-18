@@ -7,8 +7,6 @@ const settingRoutes = Router();
 
 settingRoutes.get("/settings", isAuth, SettingController.index);
 
-settingRoutes.get("/public-settings/:settingKey", isAuth, SettingController.publicShow);
-
 // routes.get("/settings/:settingKey", isAuth, SettingsController.show);
 
 // change setting key to key in future

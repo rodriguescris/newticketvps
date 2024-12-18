@@ -5,7 +5,6 @@ import AppError from "../errors/AppError";
 
 import UpdateSettingService from "../services/SettingServices/UpdateSettingService";
 import ListSettingsService from "../services/SettingServices/ListSettingsService";
-import GetPublicSettingService from "../services/SettingServices/GetPublicSettingService";
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
   const { companyId } = req.user;
@@ -37,18 +36,10 @@ export const update = async (
   });
 
   const io = getIO();
-  io.to(`company-${companyId}-mainchannel`).emit(`company-${companyId}-settings`, {
+  io.emit(`company-${companyId}-settings`, {
     action: "update",
     setting
   });
 
   return res.status(200).json(setting);
-};
-
-export const publicShow = async (req: Request, res: Response): Promise<Response> => {
-  const { settingKey: key } = req.params;
-
-  const settingValue = await GetPublicSettingService({ key });
-
-  return res.status(200).json(settingValue);
 };

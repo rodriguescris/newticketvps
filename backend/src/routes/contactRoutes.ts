@@ -24,12 +24,4 @@ contactRoutes.put("/contacts/:contactId", isAuth, ContactController.update);
 
 contactRoutes.delete("/contacts/:contactId", isAuth, ContactController.remove);
 
-contactRoutes.get("/contacts/profile/:number", isAuth, ContactController.getContactProfileURL);
-
-contactRoutes.put("/contacts/toggleDisableBot/:contactId", isAuth, ContactController.toggleDisableBot);
-
-contactRoutes.post("/contactsImport", isAuth, ContactController.importXls);
-
-contactRoutes.delete("/delete-contacts", isAuth, ContactController.deleteAllContactsFromCompanie);
-
 export default contactRoutes;

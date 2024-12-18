@@ -14,7 +14,6 @@ import DeletePlanService from "../services/PlanService/DeletePlanService";
 type IndexQuery = {
   searchParam: string;
   pageNumber: string;
-  listPublic: string;
 };
 
 type StorePlanData = {
@@ -31,7 +30,6 @@ type StorePlanData = {
   useKanban?: boolean;
   useOpenAi?: boolean;
   useIntegrations?: boolean;
-  isPublic?: boolean;
 };
 
 type UpdatePlanData = {
@@ -48,7 +46,6 @@ type UpdatePlanData = {
   useKanban?: boolean;
   useOpenAi?: boolean;
   useIntegrations?: boolean;
-  isPublic?: boolean;
 };
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
@@ -63,9 +60,7 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
 };
 
 export const list = async (req: Request, res: Response): Promise<Response> => {
-  const {listPublic} = req.query as IndexQuery;
-
-  const plans: Plan[] = await FindAllPlanService(listPublic);
+  const plans: Plan[] = await FindAllPlanService();
 
   return res.status(200).json(plans);
 };

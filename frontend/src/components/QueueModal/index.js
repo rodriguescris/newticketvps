@@ -163,6 +163,7 @@ const QueueModal = ({ open, onClose, queueId }) => {
         name: "",
         color: "",
         greetingMessage: "",
+        outOfHoursMessage: "",
         orderQueue: "",
         integrationId: ""
       });
@@ -336,7 +337,6 @@ const QueueModal = ({ open, onClose, queueId }) => {
                         </Field>
 
                       </FormControl>
-
                       <FormControl
                         margin="dense"
                         variant="outlined"
@@ -365,7 +365,6 @@ const QueueModal = ({ open, onClose, queueId }) => {
                             getContentAnchorEl: null,
                           }}
                         >
-                          <MenuItem value={0}>&nbsp;</MenuItem>
                           {prompts.map((prompt) => (
                             <MenuItem
                               key={prompt.id}
@@ -403,6 +402,7 @@ const QueueModal = ({ open, onClose, queueId }) => {
                           label={i18n.t("queueModal.form.outOfHoursMessage")}
                           type="outOfHoursMessage"
                           multiline
+                          inputRef={greetingRef}
                           rows={5}
                           fullWidth
                           name="outOfHoursMessage"

@@ -10,7 +10,7 @@ import { makeStyles } from "@material-ui/core/styles";
 import Paper from "@material-ui/core/Paper";
 import InputBase from "@material-ui/core/InputBase";
 import CircularProgress from "@material-ui/core/CircularProgress";
-import { green, grey } from "@material-ui/core/colors";
+import { green } from "@material-ui/core/colors";
 import AttachFileIcon from "@material-ui/icons/AttachFile";
 import IconButton from "@material-ui/core/IconButton";
 import MoodIcon from "@material-ui/icons/Mood";
@@ -35,15 +35,12 @@ import { useLocalStorage } from "../../hooks/useLocalStorage";
 import toastError from "../../errors/toastError";
 
 import useQuickMessages from "../../hooks/useQuickMessages";
-import { Reply } from "@material-ui/icons";
-import { ForwardMessageContext } from "../../context/ForwarMessage/ForwardMessageContext";
-import { EditMessageContext } from "../../context/EditingMessage/EditingMessageContext";
 
 const Mp3Recorder = new MicRecorder({ bitRate: 128 });
 
 const useStyles = makeStyles((theme) => ({
   mainWrapper: {
-    backgroundColor: theme.palette.bordabox, //DARK MODE PLW DESIGN//
+    backgroundColor: theme.palette.bordabox,
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
@@ -51,7 +48,7 @@ const useStyles = makeStyles((theme) => ({
   },
 
   newMessageBox: {
-    backgroundColor: theme.palette.newmessagebox, //DARK MODE PLW DESIGN//
+    backgroundColor: theme.palette.newmessagebox,
     width: "100%",
     display: "flex",
     padding: "7px",
@@ -61,7 +58,7 @@ const useStyles = makeStyles((theme) => ({
   messageInputWrapper: {
     padding: 6,
     marginRight: 7,
-    backgroundColor: theme.palette.inputdigita, //DARK MODE PLW DESIGN//
+    backgroundColor: theme.palette.inputdigita,
     display: "flex",
     borderRadius: 20,
     flex: 1,
@@ -75,11 +72,6 @@ const useStyles = makeStyles((theme) => ({
 
   sendMessageIcons: {
     color: "grey",
-  },
-
-  ForwardMessageIcons: {
-    color: grey[700],
-    transform: 'scaleX(-1)'
   },
 
   uploadInput: {
@@ -206,14 +198,13 @@ const EmojiOptions = (props) => {
 };
 
 const SignSwitch = (props) => {
-  const { width, setSignMessage, signMessage, disabled } = props;
+  const { width, setSignMessage, signMessage } = props;
   if (isWidthUp("md", width)) {
     return (
       <FormControlLabel
         style={{ marginRight: 7, color: "gray" }}
         label={i18n.t("messagesInput.signMessage")}
         labelPlacement="start"
-        disabled={disabled}
         control={
           <Switch
             size="small"
@@ -267,20 +258,18 @@ const ActionButtons = (props) => {
     handleCancelAudio,
     handleUploadAudio,
     handleStartRecording,
-    handleOpenModalForward,
-    showSelectMessageCheckbox
   } = props;
   const classes = useStyles();
-  if (inputMessage || showSelectMessageCheckbox) {
+  if (inputMessage) {
     return (
       <IconButton
         aria-label="sendMessage"
         component="span"
-        onClick={showSelectMessageCheckbox ? handleOpenModalForward : handleSendMessage}
+        onClick={handleSendMessage}
         disabled={loading}
       >
-        {showSelectMessageCheckbox ?
-          <Reply className={classes.ForwardMessageIcons} /> : <SendIcon className={classes.sendMessageIcons} />}      </IconButton>
+        <SendIcon className={classes.sendMessageIcons} />
+      </IconButton>
     );
   } else if (recording) {
     return (
@@ -337,8 +326,6 @@ const CustomInput = (props) => {
     handleInputPaste,
     disableOption,
     handleQuickAnswersClick,
-    editingMessage,
-    replyingMessage
   } = props;
   const classes = useStyles();
   const [quickMessages, setQuickMessages] = useState([]);
@@ -348,13 +335,6 @@ const CustomInput = (props) => {
   const { user } = useContext(AuthContext);
 
   const { list: listQuickMessages } = useQuickMessages();
-
-  useEffect(() => {
-    inputRef.current.focus();
-    if (editingMessage) {
-      setInputMessage(editingMessage.body);
-    }
-  }, [replyingMessage, editingMessage]);
 
   useEffect(() => {
     async function fetchData() {
@@ -395,7 +375,6 @@ const CustomInput = (props) => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inputMessage]);
-
 
   const onKeyPress = (e) => {
     if (loading || e.shiftKey) return;
@@ -442,7 +421,7 @@ const CustomInput = (props) => {
           }
         }}
         onChange={(event, opt) => {
-
+         
           if (isObject(opt) && has(opt, "value") && isNil(opt.mediaPath)) {
             setInputMessage(opt.value);
             setTimeout(() => {
@@ -464,7 +443,6 @@ const CustomInput = (props) => {
         onPaste={onPaste}
         onKeyPress={onKeyPress}
         style={{ width: "100%" }}
-        disabled={disableOption()}
         renderInput={(params) => {
           const { InputLabelProps, InputProps, ...rest } = params;
           return (
@@ -500,12 +478,6 @@ const MessageInputCustom = (props) => {
   const { user } = useContext(AuthContext);
 
   const [signMessage, setSignMessage] = useLocalStorage("signOption", true);
-  const { setEditingMessage, editingMessage } = useContext(EditMessageContext);
-
-  const {
-    selectedMessages,
-    setForwardMessageModalOpen,
-    showSelectMessageCheckbox } = useContext(ForwardMessageContext);
 
   useEffect(() => {
     inputRef.current.focus();
@@ -518,9 +490,8 @@ const MessageInputCustom = (props) => {
       setShowEmoji(false);
       setMedias([]);
       setReplyingMessage(null);
-      setEditingMessage(null);
     };
-  }, [ticketId, setReplyingMessage, setEditingMessage]);
+  }, [ticketId, setReplyingMessage]);
 
   // const handleChangeInput = e => {
   // 	if (isObject(e) && has(e, 'value')) {
@@ -558,7 +529,7 @@ const MessageInputCustom = (props) => {
       const formData = new FormData();
       const filename = `${new Date().getTime()}.${extension}`;
       formData.append("medias", blob, filename);
-      formData.append("body", message);
+      formData.append("body",  message);
       formData.append("fromMe", true);
 
       await api.post(`/messages/${ticketId}`, formData);
@@ -568,7 +539,7 @@ const MessageInputCustom = (props) => {
     }
     setLoading(false);
   };
-
+  
   const handleQuickAnswersClick = async (value) => {
     if (value.mediaPath) {
       try {
@@ -618,17 +589,13 @@ const MessageInputCustom = (props) => {
       read: 1,
       fromMe: true,
       mediaUrl: "",
-      body: signMessage && !editingMessage
+      body: signMessage
         ? `*${user?.name}:*\n${inputMessage.trim()}`
         : inputMessage.trim(),
       quotedMsg: replyingMessage,
     };
     try {
-      if (editingMessage !== null) {
-        await api.post(`/messages/edit/${editingMessage.id}`, message);
-      } else {
-        await api.post(`/messages/${ticketId}`, message);
-      }
+      await api.post(`/messages/${ticketId}`, message);
     } catch (err) {
       toastError(err);
     }
@@ -637,17 +604,7 @@ const MessageInputCustom = (props) => {
     setShowEmoji(false);
     setLoading(false);
     setReplyingMessage(null);
-    setEditingMessage(null);
   };
-
-  const handleOpenModalForward = () => {
-    if (selectedMessages.length === 0) {
-      setForwardMessageModalOpen(false)
-      toastError(i18n.t("messagesList.header.notMessage"));
-      return;
-    }
-    setForwardMessageModalOpen(true);
-  }
 
   const handleStartRecording = async () => {
     setLoading(true);
@@ -782,7 +739,6 @@ const MessageInputCustom = (props) => {
             width={props.width}
             setSignMessage={setSignMessage}
             signMessage={signMessage}
-            disabled={disableOption()}
           />
 
           <CustomInput
@@ -796,9 +752,6 @@ const MessageInputCustom = (props) => {
             handleInputPaste={handleInputPaste}
             disableOption={disableOption}
             handleQuickAnswersClick={handleQuickAnswersClick}
-            replyingMessage={replyingMessage}
-            editingMessage={editingMessage}
-
           />
 
           <ActionButtons
@@ -810,8 +763,6 @@ const MessageInputCustom = (props) => {
             handleCancelAudio={handleCancelAudio}
             handleUploadAudio={handleUploadAudio}
             handleStartRecording={handleStartRecording}
-            handleOpenModalForward={handleOpenModalForward}
-            showSelectMessageCheckbox={showSelectMessageCheckbox}
           />
         </div>
       </Paper>

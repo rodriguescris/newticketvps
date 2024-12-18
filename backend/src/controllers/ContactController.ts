@@ -17,10 +17,6 @@ import SimpleListService, {
   SearchContactParams
 } from "../services/ContactServices/SimpleListService";
 import ContactCustomField from "../models/ContactCustomField";
-import NumberSimpleListService from "../services/ContactServices/NumberSimpleListService";
-import ToggleDisableBotContactService from "../services/ContactServices/ToggleDisableBotContactService";
-import CreateOrUpdateContactServiceForImport from "../services/ContactServices/CreateOrUpdateContactServiceForImport";
-import Contact from "../models/Contact";
 
 type IndexQuery = {
   searchParam: string;
@@ -41,7 +37,6 @@ interface ContactData {
   number: string;
   email?: string;
   extraInfo?: ExtraInfo[];
-  disableBot?: boolean;
 }
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
@@ -90,32 +85,30 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
   } catch (err: any) {
     throw new AppError(err.message);
   }
-  try {
 
-    await CheckIsValidContact(newContact.number, companyId);
-    const validNumber = await CheckContactNumber(newContact.number, companyId);
-    /**
-     * Código desabilitado por demora no retorno
-     */
-    // const profilePicUrl = await GetProfilePicUrl(validNumber.jid, companyId);
+  await CheckIsValidContact(newContact.number, companyId);
+  const validNumber = await CheckContactNumber(newContact.number, companyId);
+  const number = validNumber.jid.replace(/\D/g, "");
+  newContact.number = number;
 
-    const contact = await CreateContactService({
-      ...newContact,
-      number: validNumber,
-      // profilePicUrl,
-      companyId
-    });
+  /**
+   * Código desabilitado por demora no retorno
+   */
+  // const profilePicUrl = await GetProfilePicUrl(validNumber.jid, companyId);
 
-    const io = getIO();
-    io.to(`company-${companyId}-mainchannel`).emit(`company-${companyId}-contact`, {
-      action: "create",
-      contact
-    });
+  const contact = await CreateContactService({
+    ...newContact,
+    // profilePicUrl,
+    companyId
+  });
 
-    return res.status(200).json(contact);
-  } catch (error) {
-    if (error.message === "ERR_CHECK_NUMBER") return res.status(400).send("this contact is not whatsapp");
-  }
+  const io = getIO();
+  io.emit(`company-${companyId}-contact`, {
+    action: "create",
+    contact
+  });
+
+  return res.status(200).json(contact);
 };
 
 export const show = async (req: Request, res: Response): Promise<Response> => {
@@ -150,7 +143,7 @@ export const update = async (
 
   await CheckIsValidContact(contactData.number, companyId);
   const validNumber = await CheckContactNumber(contactData.number, companyId);
-  const number = validNumber;
+  const number = validNumber.jid.replace(/\D/g, "");
   contactData.number = number;
 
   const { contactId } = req.params;
@@ -162,7 +155,7 @@ export const update = async (
   });
 
   const io = getIO();
-  io.to(`company-${companyId}-mainchannel`).emit(`company-${companyId}-contact`, {
+  io.emit(`company-${companyId}-contact`, {
     action: "update",
     contact
   });
@@ -170,7 +163,10 @@ export const update = async (
   return res.status(200).json(contact);
 };
 
-export const remove = async (req: Request, res: Response): Promise<Response> => {
+export const remove = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
   const { contactId } = req.params;
   const { companyId } = req.user;
 
@@ -179,7 +175,7 @@ export const remove = async (req: Request, res: Response): Promise<Response> => 
   await DeleteContactService(contactId);
 
   const io = getIO();
-  io.to(`company-${companyId}-mainchannel`).emit(`company-${companyId}-contact`, {
+  io.emit(`company-${companyId}-contact`, {
     action: "delete",
     contactId
   });
@@ -195,103 +191,3 @@ export const list = async (req: Request, res: Response): Promise<Response> => {
 
   return res.json(contacts);
 };
-
-export const getContactProfileURL = async (req: Request, res: Response) => {
-  const { number } = req.params
-  const { companyId } = req.user;
-
-  if (number) {
-    const validNumber = await CheckContactNumber(number, companyId);
-
-    const profilePicUrl = await GetProfilePicUrl(validNumber, companyId);
-
-    const contact = await NumberSimpleListService({ number: validNumber, companyId: companyId })
-
-    let obj: any;
-    if (contact.length > 0) {
-      obj = {
-        contactId: contact[0].id,
-        profilePicUrl: profilePicUrl
-      }
-    } else {
-      obj = {
-        contactId: 0,
-        profilePicUrl: profilePicUrl
-      }
-    }
-    return res.status(200).json(obj);
-  }
-};
-
-export const toggleDisableBot = async (req: Request, res: Response): Promise<Response> => {
-  var { contactId } = req.params;
-  const { companyId } = req.user;
-  const contact = await ToggleDisableBotContactService({ contactId });
-
-  const io = getIO();
-
-  io.to(`company-${companyId}-mainchannel`).emit(`company-${companyId}-contact`, {
-    action: "update",
-    contact
-  });
-
-  return res.status(200).json(contact);
-};
-
-export const importXls = async (req: Request, res: Response): Promise<Response> => {
-
-  const { companyId } = req.user;
-  const { number, name, email } = req.body;
-  const simpleNumber = number.replace(/[^\d.-]+/g, '');
-  console.log("simpleNumber> ", simpleNumber)
-  console.log("name> ", name)
-  const validNumber = await CheckContactNumber(simpleNumber, companyId);
-  console.log("60", validNumber)
-  /**
-   * Código desabilitado por demora no retorno
-   */
-  //
-  const profilePicUrl = await GetProfilePicUrl(validNumber, companyId);
-
-  const contactData = {
-    name: `${name}`,
-    number: validNumber,
-    profilePicUrl,
-    isGroup: false,
-    email,
-    companyId
-  };
-
-  const contact = await CreateOrUpdateContactServiceForImport(contactData);
-
-  const io = getIO();
-  io.to(`company-${companyId}-mainchannel`).emit(`company-${companyId}-contact`, {
-    action: "create",
-    contact
-  });
-
-  return res.status(200).json(contact);
-};
-
-export const deleteAllContactsFromCompanie = async (req: Request, res: Response): Promise<Response> => {
-
-  const { companyId } = req.user;
-
-  const contacts = await Contact.findAll({
-    where: { companyId }
-  });
-
-  contacts.forEach(async (contact) => {
-    await DeleteContactService(contact.id.toString());
-  });
-
-  const io = getIO();
-  io.to(`company-${companyId}-mainchannel`).emit(`company-${companyId}-contact`, {
-    action: "delete",
-    contactId: 0
-  });
-
-  return res.status(200).json({ message: "Contacts deleted" });
-}
-
-

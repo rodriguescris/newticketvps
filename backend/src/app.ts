@@ -16,15 +16,11 @@ import { messageQueue, sendScheduledMessages } from "./queues";
 Sentry.init({ dsn: process.env.SENTRY_DSN });
 
 const app = express();
-const bodyParser = require('body-parser');
 
 app.set("queues", {
   messageQueue,
   sendScheduledMessages
 });
-
-app.use(bodyParser.json({ limit: '5mb' }));
-app.use(bodyParser.urlencoded({ limit: '5mb', extended: true }));
 
 app.use(
   cors({
@@ -32,9 +28,6 @@ app.use(
     origin: process.env.FRONTEND_URL
   })
 );
-
-
-
 app.use(cookieParser());
 app.use(express.json());
 app.use(Sentry.Handlers.requestHandler());

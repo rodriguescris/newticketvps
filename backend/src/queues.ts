@@ -28,7 +28,6 @@ import FilesOptions from './models/FilesOptions';
 import { addSeconds, differenceInSeconds } from "date-fns";
 import formatBody from "./helpers/Mustache";
 import { ClosedAllOpenTickets } from "./services/WbotServices/wbotClosedTickets";
-import fs from "fs";
 
 
 const nodemailer = require('nodemailer');
@@ -95,12 +94,16 @@ async function handleSendMessage(job) {
   }
 }
 
-async function handleVerifyQueue(job) {
+{/*async function handleVerifyQueue(job) {
+  logger.info("Buscando atendimentos perdidos nas filas");
   try {
     const companies = await Company.findAll({
       attributes: ['id', 'name'],
       where: {
         status: true,
+        dueDate: {
+          [Op.gt]: Sequelize.literal('CURRENT_DATE')
+        }
       },
       include: [
         {
@@ -111,9 +114,9 @@ async function handleVerifyQueue(job) {
           }
         },
       ]
-    });
+    }); */}
 
-    companies.map(async c => {
+{/*    companies.map(async c => {
       c.whatsapps.map(async w => {
 
         if (w.status === "CONNECTED") {
@@ -178,7 +181,11 @@ async function handleVerifyQueue(job) {
 
                   logger.info(`Atendimento Perdido: ${ticket.id} - Empresa: ${companyId}`);
                 });
+              } else {
+                logger.info(`Nenhum atendimento perdido encontrado - Empresa: ${companyId}`);
               }
+            } else {
+              logger.info(`Condição não respeitada - Empresa: ${companyId}`);
             }
           }
         }
@@ -189,7 +196,7 @@ async function handleVerifyQueue(job) {
     logger.error("SearchForQueue -> VerifyQueue: error", e.message);
     throw e;
   }
-};
+}; */}
 
 async function handleCloseTicketsAutomatic() {
   const job = new CronJob('*/1 * * * *', async () => {
@@ -301,7 +308,7 @@ async function handleVerifyCampaigns(job) {
 
   if (campaigns.length > 0)
     logger.info(`Campanhas encontradas: ${campaigns.length}`);
-
+  
   for (let campaign of campaigns) {
     try {
       const now = moment();
@@ -526,16 +533,11 @@ async function verifyAndFinalizeCampaign(campaign) {
   });
 
   if (count1 === count2) {
-    if(campaign.mediaPath){ 
-      const publicFolder = path.resolve(__dirname, "..", "public");
-      const filePath = path.join(publicFolder, campaign.mediaPath);
-      fs.unlinkSync(filePath)
-    }
     await campaign.update({ status: "FINALIZADA", completedAt: moment() });
   }
 
   const io = getIO();
-  io.to(`company-${campaign.companyId}-mainchannel`).emit(`company-${campaign.companyId}-campaign`, {
+  io.emit(`company-${campaign.companyId}-campaign`, {
     action: "update",
     record: campaign
   });
@@ -543,7 +545,6 @@ async function verifyAndFinalizeCampaign(campaign) {
 
 function calculateDelay(index, baseDelay, longerIntervalAfter, greaterInterval, messageInterval) {
   const diffSeconds = differenceInSeconds(baseDelay, new Date());
-
   if (index > longerIntervalAfter) {
     return diffSeconds * 1000 + greaterInterval
   } else {
@@ -578,17 +579,15 @@ async function handleProcessCampaign(job) {
 
           const { contactId, campaignId, variables } = contactData[i];
           const delay = calculateDelay(i, baseDelay, longerIntervalAfter, greaterInterval, messageInterval);
-
-          //const queuePromise =
-          campaignQueue.add(
+          const queuePromise = campaignQueue.add(
             "PrepareContact",
             { contactId, campaignId, variables, delay },
             { removeOnComplete: true }
           );
-          //queuePromises.push(queuePromise);
+          queuePromises.push(queuePromise);
           logger.info(`Registro enviado pra fila de disparo: Campanha=${campaign.id};Contato=${contacts[i].name};delay=${delay}`);
         }
-       // await Promise.all(queuePromises);
+        await Promise.all(queuePromises);
         await campaign.update({ status: "EM_ANDAMENTO" });
       }
     }
@@ -617,7 +616,6 @@ async function handlePrepareContact(job) {
         variables,
         contact
       );
-
       campaignShipping.message = `\u200c ${message}`;
     }
 
@@ -737,7 +735,7 @@ async function handleDispatchCampaign(job) {
       const publicFolder = path.resolve(__dirname, "..", "public");
       const filePath = path.join(publicFolder, campaign.mediaPath);
 
-      const options = await getMessageOptions(campaign.mediaName, filePath, body, true);
+      const options = await getMessageOptions(campaign.mediaName, filePath, body);
       if (Object.keys(options).length) {
         await wbot.sendMessage(chatId, { ...options });
       }
@@ -760,7 +758,7 @@ async function handleDispatchCampaign(job) {
     await verifyAndFinalizeCampaign(campaign);
 
     const io = getIO();
-    io.to(`company-${campaign.companyId}-mainchannel`).emit(`company-${campaign.companyId}-campaign`, {
+    io.emit(`company-${campaign.companyId}-campaign`, {
       action: "update",
       record: campaign
     });
@@ -832,7 +830,7 @@ async function handleInvoiceCreate() {
                         pass: 'senha'
                       }
                     });
-
+ 
                     const mailOptions = {
                       from: 'heenriquega@gmail.com', // sender address
                       to: `${c.email}`, // receiver (use array of string for a list)
@@ -846,7 +844,7 @@ async function handleInvoiceCreate() {
           Qualquer duvida estamos a disposição!
                       `// plain text body
                     };
-
+ 
                     transporter.sendMail(mailOptions, (err, info) => {
                       if (err)
                         console.log(err)
@@ -890,7 +888,7 @@ export async function startQueueProcess() {
 
   userMonitor.process("VerifyLoginStatus", handleLoginStatus);
 
-  queueMonitor.process("VerifyQueueStatus", handleVerifyQueue);
+  //queueMonitor.process("VerifyQueueStatus", handleVerifyQueue);
 
 
 

@@ -11,7 +11,7 @@ import useTickets from "../../hooks/useTickets";
 import { i18n } from "../../translate/i18n";
 import { ListSubheader } from "@material-ui/core";
 import { AuthContext } from "../../context/Auth/AuthContext";
-import { SocketContext } from "../../context/Socket/SocketContext";
+import { socketConnection } from "../../services/socket";
 
 const useStyles = makeStyles((theme) => ({
   ticketsListWrapper: {
@@ -165,8 +165,6 @@ const TicketsList = ({
   const [ticketsList, dispatch] = useReducer(reducer, []);
   const { user } = useContext(AuthContext);
 
-  const socketManager = useContext(SocketContext);
-
   useEffect(() => {
     dispatch({ type: "RESET" });
     setPageNumber(1);
@@ -191,7 +189,7 @@ const TicketsList = ({
 
   useEffect(() => {
     const companyId = localStorage.getItem("companyId");
-    const socket = socketManager.getSocket(companyId);
+    const socket = socketConnection({ companyId });
 
     const shouldUpdateTicket = (ticket) =>
       (!ticket.userId || ticket.userId === user?.id || showAll) &&
@@ -253,7 +251,7 @@ const TicketsList = ({
     return () => {
       socket.disconnect();
     };
-  }, [status, showAll, user, selectedQueueIds, socketManager]);
+  }, [status, showAll, user, selectedQueueIds]);
 
   const loadMore = () => {
     setPageNumber((prevState) => prevState + 1);
