@@ -12,9 +12,12 @@ import SendWhatsAppMessage from "../WbotServices/SendWhatsAppMessage";
 import FindOrCreateATicketTrakingService from "./FindOrCreateATicketTrakingService";
 import GetTicketWbot from "../../helpers/GetTicketWbot";
 import { verifyMessage } from "../WbotServices/wbotMessageListener";
-import ListSettingsServiceOne from "../SettingServices/ListSettingsServiceOne";
-import ShowUserService from "../UserServices/ShowUserService";
+import ListSettingsServiceOne from "../SettingServices/ListSettingsServiceOne"; //NOVO PLW DESIGN//
+import ShowUserService from "../UserServices/ShowUserService"; //NOVO PLW DESIGN//
 import { isNil } from "lodash";
+import Whatsapp from "../../models/Whatsapp";
+import { Op } from "sequelize";
+import AppError from "../../errors/AppError";
 
 interface TicketData {
   status?: string;
@@ -26,6 +29,7 @@ interface TicketData {
   useIntegration?: boolean;
   integrationId?: number | null;
   promptId?: number | null;
+  lastMessage?: string;
 }
 
 interface Request {
@@ -48,12 +52,14 @@ const UpdateTicketService = async ({
 
   try {
     const { status } = ticketData;
-    let { queueId, userId, whatsappId } = ticketData;
+    let { queueId, userId, whatsappId, lastMessage = null } = ticketData;
     let chatbot: boolean | null = ticketData.chatbot || false;
     let queueOptionId: number | null = ticketData.queueOptionId || null;
     let promptId: number | null = ticketData.promptId || null;
     let useIntegration: boolean | null = ticketData.useIntegration || false;
     let integrationId: number | null = ticketData.integrationId || null;
+
+    console.log("ticketData", ticketData);
 
     const io = getIO();
 
@@ -127,7 +133,8 @@ const UpdateTicketService = async ({
             ratingAt: moment().toDate()
           });
 
-          io.to("open")
+          io.to(`company-${ticket.companyId}-open`)
+            .to(`queue-${ticket.queueId}-open`)
             .to(ticketId.toString())
             .emit(`company-${ticket.companyId}-ticket`, {
               action: "delete",
@@ -226,7 +233,7 @@ const UpdateTicketService = async ({
                 }
               );
               await verifyMessage(queueChangedMessage, ticket, ticket.contact);
-            }
+            }      
     }
 
     await ticket.update({
@@ -235,7 +242,8 @@ const UpdateTicketService = async ({
       userId,
       whatsappId,
       chatbot,
-      queueOptionId
+      queueOptionId,
+      lastMessage: lastMessage !== null ? lastMessage : ticket.lastMessage
     });
 
     await ticket.reload();
@@ -245,7 +253,7 @@ const UpdateTicketService = async ({
         whatsappId,
         queuedAt: moment().toDate(),
         startedAt: null,
-        userId: null
+        userId: null,
       });
     }
 
@@ -255,6 +263,7 @@ const UpdateTicketService = async ({
         ratingAt: null,
         rated: false,
         whatsappId,
+        lastMessage: lastMessage !== null ? lastMessage : ticket.lastMessage,
         userId: ticket.userId
       });
     }
@@ -263,15 +272,22 @@ const UpdateTicketService = async ({
 
     if (ticket.status !== oldStatus || ticket.user?.id !== oldUserId) {
 
-      io.to(oldStatus).emit(`company-${companyId}-ticket`, {
-        action: "delete",
-        ticketId: ticket.id
-      });
+      io.to(`company-${companyId}-${oldStatus}`)
+        .to(`queue-${ticket.queueId}-${oldStatus}`)
+        .to(`user-${oldUserId}`)
+        .emit(`company-${companyId}-ticket`, {
+          action: "delete",
+          ticketId: ticket.id
+        });
     }
 
-    io.to(ticket.status)
-      .to("notification")
+    io.to(`company-${companyId}-${ticket.status}`)
+      .to(`company-${companyId}-notification`)
+      .to(`queue-${ticket.queueId}-${ticket.status}`)
+      .to(`queue-${ticket.queueId}-notification`)
       .to(ticketId.toString())
+      .to(`user-${ticket?.userId}`)
+      .to(`user-${oldUserId}`)
       .emit(`company-${companyId}-ticket`, {
         action: "update",
         ticket

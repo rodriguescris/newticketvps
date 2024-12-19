@@ -58,8 +58,6 @@ const typebotListener = async ({
                 },
             });
 
-            console.log(reqData);
-
             const config = {
                 method: 'post',
                 maxBodyLength: Infinity,
@@ -99,7 +97,7 @@ const typebotListener = async ({
             await ticket.reload();
         }
 
-        if (isNil(ticket.typebotSessionId)) {
+        if (isNil(ticket.typebotSessionId)) {            
             dataStart = await createSession(msg, typebot, number);
             sessionId = dataStart.sessionId
             status = true;
@@ -395,7 +393,7 @@ const typebotListener = async ({
                 ticketData: {
                     status: "closed",
                     useIntegration: false,
-                    integrationId: null
+                    integrationId: null                   
                 },
                 ticketId: ticket.id,
                 companyId: ticket.companyId
