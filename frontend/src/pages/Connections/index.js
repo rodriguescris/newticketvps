@@ -1,6 +1,7 @@
-import React, { useState, useCallback, useContext } from "react";
+import React, { useState, useCallback, useContext, useEffect } from "react";
 import { toast } from "react-toastify";
-import { format, parseISO } from "date-fns";
+import { add, format, parseISO } from "date-fns";
+import { useHistory } from "react-router-dom";
 
 import { makeStyles } from "@material-ui/core/styles";
 import { green } from "@material-ui/core/colors";
@@ -16,6 +17,9 @@ import {
 	Tooltip,
 	Typography,
 	CircularProgress,
+	Box,
+	Card,
+	CardContent,
 } from "@material-ui/core";
 import {
 	Edit,
@@ -26,7 +30,7 @@ import {
 	CropFree,
 	DeleteOutline,
 } from "@material-ui/icons";
-import formatSerializedId from '../../utils/formatSerializedId';
+
 import MainContainer from "../../components/MainContainer";
 import MainHeader from "../../components/MainHeader";
 import MainHeaderButtonsWrapper from "../../components/MainHeaderButtonsWrapper";
@@ -40,9 +44,11 @@ import QrcodeModal from "../../components/QrcodeModal";
 import { i18n } from "../../translate/i18n";
 import { WhatsAppsContext } from "../../context/WhatsApp/WhatsAppsContext";
 import toastError from "../../errors/toastError";
+import { SocketContext } from "../../context/Socket/SocketContext";
 
 import { AuthContext } from "../../context/Auth/AuthContext";
 import { Can } from "../../components/Can";
+import { WhatsApp } from "@material-ui/icons";
 
 const useStyles = makeStyles(theme => ({
 	mainPaper: {
@@ -97,9 +103,11 @@ const CustomToolTip = ({ title, content, children }) => {
 
 const Connections = () => {
 	const classes = useStyles();
+	const history = useHistory();
 
 	const { user } = useContext(AuthContext);
 	const { whatsApps, loading } = useContext(WhatsAppsContext);
+	const [statusImport, setStatusImport] = useState([]);
 	const [whatsAppModalOpen, setWhatsAppModalOpen] = useState(false);
 	const [qrModalOpen, setQrModalOpen] = useState(false);
 	const [selectedWhatsApp, setSelectedWhatsApp] = useState(null);
@@ -115,15 +123,26 @@ const Connections = () => {
 		confirmationModalInitialState
 	);
 
-  const restartWhatsapps = async () => {
-    // const companyId = localStorage.getItem("companyId");
-    try {
-      await api.post(`/whatsapp-restart/`);
-      toast.warn(i18n.t("Aguarde... reiniciando..."));
-    } catch (err) {
-      toastError(err);
-    }
-  }
+  const socketManager = useContext(SocketContext);
+
+	useEffect(() => {
+		const companyId = localStorage.getItem("companyId");
+		const socket = socketManager.getSocket(companyId);
+
+		socket.on(`importMessages-${user.companyId}`, (data) => {
+			if (data.action === "refresh") {
+				setStatusImport([]);
+				history.go(0);
+			}
+			if (data.action === "update") {
+				setStatusImport(data.status);
+			}
+		});
+
+		/* return () => {
+		  socket.disconnect();
+		}; */
+	}, [whatsApps, socketManager]);
 
 	const handleStartWhatsAppSession = async whatsAppId => {
 		try {
@@ -141,6 +160,11 @@ const Connections = () => {
 		}
 	};
 
+	const openInNewTab = url => {
+		window.open(url, '_blank', 'noopener,noreferrer');
+	};
+
+	  
 	const handleOpenWhatsAppModal = () => {
 		setSelectedWhatsApp(null);
 		setWhatsAppModalOpen(true);
@@ -184,6 +208,14 @@ const Connections = () => {
 				whatsAppId: whatsAppId,
 			});
 		}
+		if (action === "closedImported") {
+			setConfirmModalInfo({
+				action: action,
+				title: i18n.t("connections.confirmationModal.closedImportedTitle"),
+				message: i18n.t("connections.confirmationModal.closedImportedMessage"),
+				whatsAppId: whatsAppId,
+			});
+		}
 		setConfirmModalOpen(true);
 	};
 
@@ -205,7 +237,92 @@ const Connections = () => {
 			}
 		}
 
+		if (confirmModalInfo.action === "closedImported") {
+			try {
+				await api.post(`/closedimported/${confirmModalInfo.whatsAppId}`);
+				toast.success(i18n.t("connections.toasts.closedimported"));
+			} catch (err) {
+				toastError(err);
+			}
+		}
+
 		setConfirmModalInfo(confirmationModalInitialState);
+	};
+
+	function CircularProgressWithLabel(props) {
+		return (
+			<Box position="relative" display="inline-flex">
+				<CircularProgress variant="determinate" {...props} />
+				<Box
+					top={0}
+					left={0}
+					bottom={0}
+					right={0}
+					position="absolute"
+					display="flex"
+					alignItems="center"
+					justifyContent="center"
+				>
+					<Typography
+						variant="caption"
+						component="div"
+						color="textSecondary"
+					>{`${Math.round(props.value)}%`}</Typography>
+				</Box>
+			</Box>
+		);
+	}
+
+	const renderImportButton = (whatsApp) => {
+		if (whatsApp?.statusImportMessages === "renderButtonCloseTickets") {
+			return (
+				<Button
+					style={{ marginLeft: 12 }}
+					size="small"
+					variant="outlined"
+					color="primary"
+					onClick={() => {
+						handleOpenConfirmationModal("closedImported", whatsApp.id);
+					}}
+				>
+					{i18n.t("connections.buttons.closedImported")}
+				</Button>
+			);
+		}
+
+		if (whatsApp?.importOldMessages) {
+			let isTimeStamp = !isNaN(
+				new Date(Math.floor(whatsApp?.statusImportMessages)).getTime()
+			);
+
+			if (isTimeStamp) {
+				const ultimoStatus = new Date(
+					Math.floor(whatsApp?.statusImportMessages)
+				).getTime();
+				const dataLimite = +add(ultimoStatus, { seconds: +35 }).getTime();
+				if (dataLimite > new Date().getTime()) {
+					return (
+						<>
+							<Button
+								disabled
+								style={{ marginLeft: 12 }}
+								size="small"
+								endIcon={
+									<CircularProgress
+										size={12}
+										className={classes.buttonProgress}
+									/>
+								}
+								variant="outlined"
+								color="primary"
+							>
+								{i18n.t("connections.buttons.preparing")}
+							</Button>
+						</>
+					);
+				}
+			}
+		}
 	};
 
 	const renderActionButtons = whatsApp => {
@@ -244,17 +361,21 @@ const Connections = () => {
 				{(whatsApp.status === "CONNECTED" ||
 					whatsApp.status === "PAIRING" ||
 					whatsApp.status === "TIMEOUT") && (
-					<Button
-						size="small"
-						variant="outlined"
-						color="secondary"
-						onClick={() => {
-							handleOpenConfirmationModal("disconnect", whatsApp.id);
-						}}
-					>
-						{i18n.t("connections.buttons.disconnect")}
-					</Button>
-				)}
+						<>
+							<Button
+								size="small"
+								variant="outlined"
+								color="secondary"
+								onClick={() => {
+									handleOpenConfirmationModal("disconnect", whatsApp.id);
+								}}
+							>
+								{i18n.t("connections.buttons.disconnect")}
+							</Button>
+
+							{renderImportButton(whatsApp)}
+						</>
+					)}
 				{whatsApp.status === "OPENING" && (
 					<Button size="small" variant="outlined" disabled color="default">
 						{i18n.t("connections.buttons.connecting")}
@@ -330,7 +451,6 @@ const Connections = () => {
 						role={user.profile}
 						perform="connections-page:addConnection"
 						yes={() => (
-						<>
 							<Button
 								variant="contained"
 								color="primary"
@@ -338,18 +458,55 @@ const Connections = () => {
 							>
 								{i18n.t("connections.buttons.add")}
 							</Button>
- 							<Button
-            					variant="contained"
-            					color="primary"
-            					onClick={restartWhatsapps}
-          					>
-            					{i18n.t("REINICIAR CONEXÕES")}
-          					</Button>
-							</>
 						)}
 					/>
+					
+					<Button
+						variant="contained"
+						color="primary"
+						onClick={() => openInNewTab(`https://wa.me/${process.env.REACT_APP_NUMBER_SUPPORT}`)}
+						
+					>
+						<WhatsApp style={{ marginRight: "5px"}} />
+						<span>{i18n.t("connections.buttons.support")}</span>
+					</Button>
 				</MainHeaderButtonsWrapper>
 			</MainHeader>
+			{statusImport?.all ? (
+				<>
+					<div style={{ margin: "auto", marginBottom: 12 }}>
+						<Card className={classes.root}>
+							<CardContent className={classes.content}>
+								<Typography component="h5" variant="h5">
+									{statusImport?.this === -1 ? i18n.t("connections.buttons.preparing") : i18n.t("connections.buttons.importing")}
+								</Typography>
+								{statusImport?.this === -1 ?
+									<Typography component="h6" variant="h6" align="center">
+										<CircularProgress
+											size={24}
+										/>
+									</Typography>
+									:
+									<>
+										<Typography component="h6" variant="h6" align="center">
+											{`${i18n.t(`connections.typography.processed`)} ${statusImport?.this} ${i18n.t(`connections.typography.in`)} ${statusImport?.all}  ${i18n.t(`connections.typography.date`)}: ${statusImport?.date} `}
+										</Typography>
+										<Typography align="center">
+											<CircularProgressWithLabel
+												style={{ margin: "auto" }}
+												value={(statusImport?.this / statusImport?.all) * 100}
+											/>
+										</Typography>
+									</>
+
+
+								}
+
+							</CardContent>
+						</Card>
+					</div>
+				</>
+			) : null}
 			<Paper className={classes.mainPaper} variant="outlined">
 				<Table size="small">
 					<TableHead>
@@ -357,9 +514,6 @@ const Connections = () => {
 							<TableCell align="center">
 								{i18n.t("connections.table.name")}
 							</TableCell>
-							<TableCell align="center">
-                            	{i18n.t("connections.table.number")}
-                            </TableCell>							
 							<TableCell align="center">
 								{i18n.t("connections.table.status")}
 							</TableCell>
@@ -398,17 +552,6 @@ const Connections = () => {
 									whatsApps.map(whatsApp => (
 										<TableRow key={whatsApp.id}>
 											<TableCell align="center">{whatsApp.name}</TableCell>
-											<TableCell align="center">
-											  {whatsApp.number ? (
-												<>
-												  {console.log("Número do WhatsApp:", whatsApp.number)}
-												  {console.log("Número formatado:", formatSerializedId(whatsApp.number))}
-												  {formatSerializedId(whatsApp.number)}
-												</>
-											  ) : (
-												"-"
-											  )}
-											</TableCell>
 											<TableCell align="center">
 												{renderStatusToolTips(whatsApp)}
 											</TableCell>

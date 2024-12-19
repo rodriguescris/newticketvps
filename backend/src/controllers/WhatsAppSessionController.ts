@@ -21,7 +21,7 @@ const update = async (req: Request, res: Response): Promise<Response> => {
   const { whatsapp } = await UpdateWhatsAppService({
     whatsappId,
     companyId,
-    whatsappData: { session: "" }
+    whatsappData: { session: "", requestQR: true }
   });
 
   await StartWhatsAppSession(whatsapp, companyId);
@@ -34,11 +34,12 @@ const remove = async (req: Request, res: Response): Promise<Response> => {
   const { companyId } = req.user;
   const whatsapp = await ShowWhatsAppService(whatsappId, companyId);
 
-  if (whatsapp.session) {
-    await whatsapp.update({ status: "DISCONNECTED", session: "" });
-    const wbot = getWbot(whatsapp.id);
-    await wbot.logout();
-  }
+
+  await whatsapp.update({ status: "DISCONNECTED", session: "" });
+  const wbot = getWbot(whatsapp.id);
+
+  wbot.logout();
+  wbot.ws.close();
 
   return res.status(200).json({ message: "Session disconnected." });
 };

@@ -7,7 +7,8 @@ import {
   PrimaryKey,
   AutoIncrement,
   AllowNull,
-  Unique
+  Unique,
+  Default
 } from "sequelize-typescript";
 
 @Table
@@ -60,9 +61,10 @@ class Plan extends Model<Plan> {
 
   @Column
   useIntegrations: boolean;
-  
+
+  @Default(true)
   @Column
-  useInternal: boolean; 
+  isPublic: boolean;
 }
 
 export default Plan;

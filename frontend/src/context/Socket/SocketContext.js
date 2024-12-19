@@ -1,6 +1,17 @@
+/*
+
+   NÃO REMOVER
+
+   Fornecido por Claudemir Todo Bom
+   Licenciado para Raphael Batista / Equipechat
+   
+   Licença vitalícia e exclusiva. Não pode ser sublicenciado a terceiros
+
+ */
+
 import { createContext } from "react";
 import openSocket from "socket.io-client";
-import { isExpired, decodeToken } from "react-jwt";
+import { isExpired } from "react-jwt";
 
 class ManagedSocket {
   constructor(socketManager) {
@@ -69,7 +80,7 @@ class DummySocket {
   disconnect() {}
 }
 
-const SocketManager = {
+const socketManager = {
   currentCompanyId: -1,
   currentUserId: -1,
   currentSocket: null,
@@ -96,7 +107,7 @@ const SocketManager = {
         this.currentSocket.disconnect();
         this.currentSocket = null;
         this.currentCompanyId = null;
-		    this.currentUserId = null;
+        this.currentUserId = null;
       }
 
       let token = JSON.parse(localStorage.getItem("token"));
@@ -105,8 +116,13 @@ const SocketManager = {
       }
       
       if ( isExpired(token) ) {
-        console.warn("Expired token, reload after refresh");
+        console.warn("Expired token, waiting for refresh");
         setTimeout(() => {
+          const currentToken = JSON.parse(localStorage.getItem("token"));
+          if (isExpired(currentToken)) {
+            localStorage.removeItem("token");
+            localStorage.removeItem("companyId");
+          }
           window.location.reload();
         },1000);
         return new DummySocket();
@@ -175,6 +191,10 @@ const SocketManager = {
       return
     }
     
+    if (!this.currentSocket) {
+      return;
+    }
+    
     this.currentSocket.once("ready", () => {
       callbackReady();
     });
@@ -186,4 +206,4 @@ const SocketManager = {
 
 const SocketContext = createContext()
 
-export { SocketContext, SocketManager };
+export { SocketContext, socketManager };

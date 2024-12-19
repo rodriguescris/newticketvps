@@ -2,7 +2,6 @@ import * as Yup from "yup";
 import { Request, Response } from "express";
 import { getIO } from "../libs/socket";
 
-import Contact from "../models/Contact";
 import ListContactsService from "../services/ContactServices/ListContactsService";
 import CreateContactService from "../services/ContactServices/CreateContactService";
 import ShowContactService from "../services/ContactServices/ShowContactService";
@@ -18,8 +17,10 @@ import SimpleListService, {
   SearchContactParams
 } from "../services/ContactServices/SimpleListService";
 import ContactCustomField from "../models/ContactCustomField";
-import {head} from "lodash";
-import {ImportContacts} from "../services/ContactServices/ImportContacts";
+import NumberSimpleListService from "../services/ContactServices/NumberSimpleListService";
+import ToggleDisableBotContactService from "../services/ContactServices/ToggleDisableBotContactService";
+import CreateOrUpdateContactServiceForImport from "../services/ContactServices/CreateOrUpdateContactServiceForImport";
+import Contact from "../models/Contact";
 
 type IndexQuery = {
   searchParam: string;
@@ -40,6 +41,7 @@ interface ContactData {
   number: string;
   email?: string;
   extraInfo?: ExtraInfo[];
+  disableBot?: boolean;
 }
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
@@ -88,43 +90,32 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
   } catch (err: any) {
     throw new AppError(err.message);
   }
+  try {
 
-  await CheckIsValidContact(newContact.number, companyId);
-  const validNumber = await CheckContactNumber(newContact.number, companyId);
-  const number = validNumber.jid.replace(/\D/g, "");
-  newContact.number = number;
+    await CheckIsValidContact(newContact.number, companyId);
+    const validNumber = await CheckContactNumber(newContact.number, companyId);
+    /**
+     * Código desabilitado por demora no retorno
+     */
+    // const profilePicUrl = await GetProfilePicUrl(validNumber.jid, companyId);
 
-    // Check if the contact already exists
-    const existingContact = await Contact.findOne({
-      where: {
-        number: newContact.number,
-        companyId
-      }
+    const contact = await CreateContactService({
+      ...newContact,
+      number: validNumber,
+      // profilePicUrl,
+      companyId
     });
-    
-    if (existingContact) {
-      // Contact already exists, send the existing contact data as the response
-      return res.status(200).json({ alreadyExists: true, existingContact });
-    }
 
-  /**
-   * Código desabilitado por demora no retorno
-   */
-  // const profilePicUrl = await GetProfilePicUrl(validNumber.jid, companyId);
+    const io = getIO();
+    io.to(`company-${companyId}-mainchannel`).emit(`company-${companyId}-contact`, {
+      action: "create",
+      contact
+    });
 
-  const contact = await CreateContactService({
-    ...newContact,
-    // profilePicUrl,
-    companyId
-  });
-
-  const io = getIO();
-  io.to(`company-${companyId}-mainchannel`).emit(`company-${companyId}-contact`, {
-    action: "create",
-    contact
-  });
-
-  return res.status(200).json(contact);
+    return res.status(200).json(contact);
+  } catch (error) {
+    if (error.message === "ERR_CHECK_NUMBER") return res.status(400).send("this contact is not whatsapp");
+  }
 };
 
 export const show = async (req: Request, res: Response): Promise<Response> => {
@@ -159,7 +150,7 @@ export const update = async (
 
   await CheckIsValidContact(contactData.number, companyId);
   const validNumber = await CheckContactNumber(contactData.number, companyId);
-  const number = validNumber.jid.replace(/\D/g, "");
+  const number = validNumber;
   contactData.number = number;
 
   const { contactId } = req.params;
@@ -179,10 +170,7 @@ export const update = async (
   return res.status(200).json(contact);
 };
 
-export const remove = async (
-  req: Request,
-  res: Response
-): Promise<Response> => {
+export const remove = async (req: Request, res: Response): Promise<Response> => {
   const { contactId } = req.params;
   const { companyId } = req.user;
 
@@ -208,52 +196,102 @@ export const list = async (req: Request, res: Response): Promise<Response> => {
   return res.json(contacts);
 };
 
-export const upload = async (req: Request, res: Response) => {
-  const files = req.files as Express.Multer.File[];
-  const file: Express.Multer.File = head(files) as Express.Multer.File;
+export const getContactProfileURL = async (req: Request, res: Response) => {
+  const { number } = req.params
   const { companyId } = req.user;
 
-  const response = await ImportContacts(companyId, file);
+  if (number) {
+    const validNumber = await CheckContactNumber(number, companyId);
+
+    const profilePicUrl = await GetProfilePicUrl(validNumber, companyId);
+
+    const contact = await NumberSimpleListService({ number: validNumber, companyId: companyId })
+
+    let obj: any;
+    if (contact.length > 0) {
+      obj = {
+        contactId: contact[0].id,
+        profilePicUrl: profilePicUrl
+      }
+    } else {
+      obj = {
+        contactId: 0,
+        profilePicUrl: profilePicUrl
+      }
+    }
+    return res.status(200).json(obj);
+  }
+};
+
+export const toggleDisableBot = async (req: Request, res: Response): Promise<Response> => {
+  var { contactId } = req.params;
+  const { companyId } = req.user;
+  const contact = await ToggleDisableBotContactService({ contactId });
 
   const io = getIO();
 
   io.to(`company-${companyId}-mainchannel`).emit(`company-${companyId}-contact`, {
-    action: "create",
-    records: response
-  });
-
-  return res.status(200).json(response);
-};
-
-export const getContactVcard = async (
-  req: Request,
-  res: Response
-): Promise<Response> => {
-  const { name, number } = req.query as IndexGetContactQuery;
-  const { companyId } = req.user;
-
-  let vNumber = number;
-  const numberDDI = vNumber.toString().substr(0, 2);
-  const numberDDD = vNumber.toString().substr(2, 2);
-  const numberUser = vNumber.toString().substr(-8, 8);
-
-  if (numberDDD <= '30' && numberDDI === '55') {
-    console.log("menor 30")
-    vNumber = `${numberDDI + numberDDD + 9 + numberUser}@s.whatsapp.net`;
-  } else if (numberDDD > '30' && numberDDI === '55') {
-    console.log("maior 30")
-    vNumber = `${numberDDI + numberDDD + numberUser}@s.whatsapp.net`;
-  } else {
-    vNumber = `${number}@s.whatsapp.net`;
-  }
-
-  console.log(vNumber);
-
-  const contact = await GetContactService({
-    name,
-    number,
-    companyId
+    action: "update",
+    contact
   });
 
   return res.status(200).json(contact);
 };
+
+export const importXls = async (req: Request, res: Response): Promise<Response> => {
+
+  const { companyId } = req.user;
+  const { number, name, email } = req.body;
+  const simpleNumber = number.replace(/[^\d.-]+/g, '');
+  console.log("simpleNumber> ", simpleNumber)
+  console.log("name> ", name)
+  const validNumber = await CheckContactNumber(simpleNumber, companyId);
+  console.log("60", validNumber)
+  /**
+   * Código desabilitado por demora no retorno
+   */
+  //
+  const profilePicUrl = await GetProfilePicUrl(validNumber, companyId);
+
+  const contactData = {
+    name: `${name}`,
+    number: validNumber,
+    profilePicUrl,
+    isGroup: false,
+    email,
+    companyId
+  };
+
+  const contact = await CreateOrUpdateContactServiceForImport(contactData);
+
+  const io = getIO();
+  io.to(`company-${companyId}-mainchannel`).emit(`company-${companyId}-contact`, {
+    action: "create",
+    contact
+  });
+
+  return res.status(200).json(contact);
+};
+
+export const deleteAllContactsFromCompanie = async (req: Request, res: Response): Promise<Response> => {
+
+  const { companyId } = req.user;
+
+  const contacts = await Contact.findAll({
+    where: { companyId }
+  });
+
+  contacts.forEach(async (contact) => {
+    await DeleteContactService(contact.id.toString());
+  });
+
+  const io = getIO();
+  io.to(`company-${companyId}-mainchannel`).emit(`company-${companyId}-contact`, {
+    action: "delete",
+    contactId: 0
+  });
+
+  return res.status(200).json({ message: "Contacts deleted" });
+}
+
+

@@ -80,7 +80,7 @@ export function PlanManagerForm(props) {
         useKanban: true,
         useOpenAi: true,
         useIntegrations: true,
-        useInternal: true
+        isPublic: true
     });
 
     useEffect(() => {
@@ -117,7 +117,23 @@ export function PlanManagerForm(props) {
                                 margin="dense"
                             />
                         </Grid>
-
+                        {/* PLANO PUBLICO*/}
+                        <Grid xs={12} sm={6} md={2} xl={2} item>
+                            <FormControl margin="dense" variant="outlined" fullWidth>
+                                <InputLabel htmlFor="status-selection">{i18n.t("plans.form.public")}</InputLabel>
+                                <Field
+                                    as={Select}
+                                    id="status-selection"
+                                    label={i18n.t("plans.form.public")}
+                                    labelId="status-selection-label"
+                                    name="isPublic"
+                                    margin="dense"
+                                >
+                                    <MenuItem value={true}>Sim</MenuItem>
+                                    <MenuItem value={false}>Não</MenuItem>
+                                </Field>
+                            </FormControl>
+                        </Grid>
                         {/* USUARIOS */}
                         <Grid xs={12} sm={6} md={1} item>
                             <Field
@@ -295,24 +311,6 @@ export function PlanManagerForm(props) {
                                 </Field>
                             </FormControl>
                         </Grid>
-
-                        <Grid xs={12} sm={6} md={2} item>
-                            <FormControl margin="dense" variant="outlined" fullWidth>
-                                <InputLabel htmlFor="useInternal-selection">Uso Interno</InputLabel>
-                                <Field
-                                    as={Select}
-                                    id="useInternal-selection"
-                                    label="Uso Interno"
-                                    labelId="useInternal-selection-label"
-                                    name="useInternal"
-                                    margin="dense"
-                                >
-                                    <MenuItem value={false}>Sim</MenuItem>
-                                    <MenuItem value={true}>Não</MenuItem>
-                                </Field>
-                            </FormControl>
-                        </Grid>
-
                     </Grid>
                     <Grid spacing={2} justifyContent="flex-end" container>
 
@@ -372,10 +370,6 @@ export function PlansManagerGrid(props) {
         return row.useIntegrations === false ? `${i18n.t("plans.form.no")}` : `${i18n.t("plans.form.yes")}`;
     };
 
-    const renderInternal = (row) => {
-        return row.useInternal === false ? "Sim" : "Não";
-    };
-
     return (
         <Paper className={classes.tableContainer}>
             <Table
@@ -388,6 +382,7 @@ export function PlansManagerGrid(props) {
                     <TableRow>
                         <TableCell align="center" style={{ width: '1%' }}>#</TableCell>
                         <TableCell align="left">{i18n.t("plans.form.name")}</TableCell>
+                        <TableCell align="center">{i18n.t("plans.form.public")}</TableCell>
                         <TableCell align="center">{i18n.t("plans.form.users")}</TableCell>
                         <TableCell align="center">{i18n.t("plans.form.connections")}</TableCell>
                         <TableCell align="center">Filas</TableCell>
@@ -399,7 +394,6 @@ export function PlansManagerGrid(props) {
                         <TableCell align="center">Kanban</TableCell>
                         <TableCell align="center">Open.Ai</TableCell>
                         <TableCell align="center">Integrações</TableCell>
-						<TableCell align="center">Plano Interno</TableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
@@ -411,6 +405,7 @@ export function PlansManagerGrid(props) {
                                 </IconButton>
                             </TableCell>
                             <TableCell align="left">{row.name || '-'}</TableCell>
+                            <TableCell align="center">{row.isPublic ? "Sim": "Não" || '-'}</TableCell>
                             <TableCell align="center">{row.users || '-'}</TableCell>
                             <TableCell align="center">{row.connections || '-'}</TableCell>
                             <TableCell align="center">{row.queues || '-'}</TableCell>
@@ -422,7 +417,6 @@ export function PlansManagerGrid(props) {
                             <TableCell align="center">{renderKanban(row)}</TableCell>
                             <TableCell align="center">{renderOpenAi(row)}</TableCell>
                             <TableCell align="center">{renderIntegrations(row)}</TableCell>
-							<TableCell align="center">{renderInternal(row)}</TableCell>
                         </TableRow>
                     ))}
                 </TableBody>
@@ -451,7 +445,7 @@ export default function PlansManager() {
         useKanban: true,
         useOpenAi: true,
         useIntegrations: true,
-        useInternal: true
+        isPublic: true
     })
 
     useEffect(() => {
@@ -475,7 +469,6 @@ export default function PlansManager() {
 
     const handleSubmit = async (data) => {
         setLoading(true)
-        console.log(data)
         try {
             if (data.id !== undefined) {
                 await update(data)
@@ -523,7 +516,7 @@ export default function PlansManager() {
             useKanban: true,
             useOpenAi: true,
             useIntegrations: true,
-            useInternal: true
+            isPublic: true
         })
     }
 
@@ -536,7 +529,6 @@ export default function PlansManager() {
         let useKanban = data.useKanban === false ? false : true
         let useOpenAi = data.useOpenAi === false ? false : true
         let useIntegrations = data.useIntegrations === false ? false : true
-        let useInternal= data.useInternal === true ? true : false
 
         setRecord({
             id: data.id,
@@ -552,7 +544,7 @@ export default function PlansManager() {
             useKanban,
             useOpenAi,
             useIntegrations,
-            useInternal
+            isPublic: data.isPublic
         })
     }
 

@@ -15,11 +15,9 @@ import { ToastContainer, toast } from 'react-toastify';
 import { makeStyles } from "@material-ui/core/styles";
 import { grey, blue } from "@material-ui/core/colors";
 import { Tabs, Tab } from "@material-ui/core";
-import OnlyForSuperUser from '../../components/OnlyForSuperUser';
-import useAuth from '../../hooks/useAuth.js';
 
 //import 'react-toastify/dist/ReactToastify.css';
- 
+
 const useStyles = makeStyles((theme) => ({
   container: {
     paddingTop: theme.spacing(4),
@@ -82,34 +80,11 @@ const useStyles = makeStyles((theme) => ({
 export default function Options(props) {
   const { settings, scheduleTypeChanged } = props;
   const classes = useStyles();
-
-  const [currentUser, setCurrentUser] = useState({});
-  const { getCurrentUserInfo } = useAuth();
-  const [loading, setLoading] = useState(false);
-  useEffect(() => {
-    async function findData() {
-      setLoading(true);
-      try {
-        const user = await getCurrentUserInfo();
-        setCurrentUser(user);
-      } catch (e) {
-        toast.error(e);
-      }
-      setLoading(false);
-    }
-    findData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const isSuper = () => {
-    return currentUser.super;
-  }; 
-
   const [userRating, setUserRating] = useState("disabled");
   const [scheduleType, setScheduleType] = useState("disabled");
   const [callType, setCallType] = useState("enabled");
   const [chatbotType, setChatbotType] = useState("");
-  const [CheckMsgIsGroup, setCheckMsgIsGroupType] = useState("enabled");
+  const [CheckMsgIsGroup, setCheckMsgIsGroupType] = useState("disabled");
 
   const [loadingUserRating, setLoadingUserRating] = useState(false);
   const [loadingScheduleType, setLoadingScheduleType] = useState(false);
@@ -132,25 +107,15 @@ export default function Options(props) {
 
   const [asaasType, setAsaasType] = useState("");
   const [loadingAsaasType, setLoadingAsaasType] = useState(false);
-  
-  // recursos a mais...
-  const [trial, settrial] = useState('3');
-  const [loadingtrial, setLoadingtrial] = useState(false);
-
-  const [viewregister, setviewregister] = useState('disabled');
-  const [loadingviewregister, setLoadingviewregister] = useState(false);
-
-  const [allowregister, setallowregister] = useState('disabled');
-  const [loadingallowregister, setLoadingallowregister] = useState(false);
+  // recursos a mais da plw design
 
   const [SendGreetingAccepted, setSendGreetingAccepted] = useState("disabled");
   const [loadingSendGreetingAccepted, setLoadingSendGreetingAccepted] = useState(false);
-  
+
   const [SettingsTransfTicket, setSettingsTransfTicket] = useState("disabled");
   const [loadingSettingsTransfTicket, setLoadingSettingsTransfTicket] = useState(false);
-  
-  const [sendGreetingMessageOneQueues, setSendGreetingMessageOneQueues] = useState("disabled");
-  const [loadingSendGreetingMessageOneQueues, setLoadingSendGreetingMessageOneQueues] = useState(false);
+  const [UserViewTicketsWithoutQueue, setUserViewTicketsWithoutQueue] = useState("disabled");
+  const [loadingUserViewTicketsWithoutQueue, setLoadingUserViewTicketsWithoutQueue] = useState(false);
 
   const { update } = useSettings();
 
@@ -173,44 +138,23 @@ export default function Options(props) {
         setCheckMsgIsGroupType(CheckMsgIsGroup.value);
       }
 
-      const allowregister = settings.find((s) => s.key === 'allowregister');
-      if (allowregister) {
-        setallowregister(allowregister.value);
-      }
-      
-	  {/*PLW DESIGN SAUDAÇÃO*/}
+      {/*PLW DESIGN SAUDAÇÃO*/ }
       const SendGreetingAccepted = settings.find((s) => s.key === "sendGreetingAccepted");
       if (SendGreetingAccepted) {
         setSendGreetingAccepted(SendGreetingAccepted.value);
-      }	 
-	  {/*PLW DESIGN SAUDAÇÃO*/}	 
-	  
-	  {/*TRANSFERIR TICKET*/}	
-	  const SettingsTransfTicket = settings.find((s) => s.key === "sendMsgTransfTicket");
+      }
+      {/*PLW DESIGN SAUDAÇÃO*/ }
+
+      {/*TRANSFERIR TICKET*/ }
+      const SettingsTransfTicket = settings.find((s) => s.key === "sendMsgTransfTicket");
       if (SettingsTransfTicket) {
         setSettingsTransfTicket(SettingsTransfTicket.value);
       }
-	  {/*TRANSFERIR TICKET*/}
+      {/*TRANSFERIR TICKET*/ }
 
-
-      const viewregister = settings.find((s) => s.key === 'viewregister');
-      if (viewregister) {
-        setviewregister(viewregister.value);
-      }
-
-      const sendGreetingMessageOneQueues = settings.find((s) => s.key === "sendGreetingMessageOneQueues");
-      if (sendGreetingMessageOneQueues) {
-        setSendGreetingMessageOneQueues(sendGreetingMessageOneQueues.value)
-      }	  
-	  
       const chatbotType = settings.find((s) => s.key === "chatBotType");
       if (chatbotType) {
         setChatbotType(chatbotType.value);
-      }
-	  
-	  const trial = settings.find((s) => s.key === 'trial');
-      if (trial) {
-        settrial(trial.value);
       }
 
       const ipixcType = settings.find((s) => s.key === "ipixc");
@@ -242,9 +186,28 @@ export default function Options(props) {
       if (asaasType) {
         setAsaasType(asaasType.value);
       }
+
+      const userViewTicketsWithoutQueue = settings.find((s) => s.key === "userViewTicketsWithoutQueue");
+      if (userViewTicketsWithoutQueue) {
+        setUserViewTicketsWithoutQueue(userViewTicketsWithoutQueue.value);
+      }
     }
+
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings]);
+
+
+  async function handleUserViewTicketsWithoutQueue(value) {
+    setUserViewTicketsWithoutQueue(value);
+    setLoadingUserViewTicketsWithoutQueue(true);
+    await update({
+      key: "userViewTicketsWithoutQueue",
+      value,
+    });
+    toast.success("Operação atualizada com sucesso.");
+    setLoadingUserViewTicketsWithoutQueue(false);
+  }
 
   async function handleChangeUserRating(value) {
     setUserRating(value);
@@ -256,51 +219,6 @@ export default function Options(props) {
     toast.success("Operação atualizada com sucesso.");
     setLoadingUserRating(false);
   }
-
-  async function handleallowregister(value) {
-    setallowregister(value);
-    setLoadingallowregister(true);
-    await update({
-      key: 'allowregister',
-      value,
-    });
-    toast.success('Operação atualizada com sucesso.');
-    setLoadingallowregister(false);
-  }
-  
-    async function handleSendGreetingMessageOneQueues(value) {
-    setSendGreetingMessageOneQueues(value);
-    setLoadingSendGreetingMessageOneQueues(true);
-    await update({
-      key: "sendGreetingMessageOneQueues",
-      value,
-    });
-	toast.success("Operação atualizada com sucesso.");
-    setLoadingSendGreetingMessageOneQueues(false);
-  }
-
-  async function handleviewregister(value) {
-    setviewregister(value);
-    setLoadingviewregister(true);
-    await update({
-      key: 'viewregister',
-      value,
-    });
-    toast.success('Operação atualizada com sucesso.');
-    setLoadingviewregister(false);
-  }
-  
-    async function handletrial(value) {
-    settrial(value);
-    setLoadingtrial(true);
-    await update({
-      key: 'trial',
-      value,
-    });
-    toast.success('Operação atualizada com sucesso.');
-    setLoadingtrial(false);
-  }
-
 
   async function handleScheduleType(value) {
     setScheduleType(value);
@@ -318,7 +236,7 @@ export default function Options(props) {
       pauseOnHover: false,
       draggable: true,
       theme: "light",
-      });
+    });
     setLoadingScheduleType(false);
     if (typeof scheduleTypeChanged === "function") {
       scheduleTypeChanged(value);
@@ -355,13 +273,13 @@ export default function Options(props) {
       value,
     });
     toast.success("Operação atualizada com sucesso.");
-    setCheckMsgIsGroupType(false);
+    // setCheckMsgIsGroupType(false);
     /*     if (typeof scheduleTypeChanged === "function") {
           scheduleTypeChanged(value);
         } */
   }
-  
-  {/*NOVO CÓDIGO*/}  
+
+  {/*NOVO CÓDIGO*/ }
   async function handleSendGreetingAccepted(value) {
     setSendGreetingAccepted(value);
     setLoadingSendGreetingAccepted(true);
@@ -369,12 +287,12 @@ export default function Options(props) {
       key: "sendGreetingAccepted",
       value,
     });
-	toast.success("Operação atualizada com sucesso.");
+    toast.success("Operação atualizada com sucesso.");
     setLoadingSendGreetingAccepted(false);
-  }  
-  
-  
-  {/*NOVO CÓDIGO*/}    
+  }
+
+
+  {/*NOVO CÓDIGO*/ }
 
   async function handleSettingsTransfTicket(value) {
     setSettingsTransfTicket(value);
@@ -386,8 +304,8 @@ export default function Options(props) {
 
     toast.success("Operação atualizada com sucesso.");
     setLoadingSettingsTransfTicket(false);
-  } 
- 
+  }
+
   async function handleChangeIPIxc(value) {
     setIpIxcType(value);
     setLoadingIpIxcType(true);
@@ -456,7 +374,10 @@ export default function Options(props) {
   return (
     <>
       <Grid spacing={3} container>
-        <Grid xs={12} sm={12} md={12} item>
+        {/* <Grid xs={12} item>
+                    <Title>Configurações Gerais</Title>
+                </Grid> */}
+        <Grid xs={12} sm={6} md={4} item>
           <FormControl className={classes.selectContainer}>
             <InputLabel id="ratings-label">Avaliações</InputLabel>
             <Select
@@ -474,7 +395,7 @@ export default function Options(props) {
             </FormHelperText>
           </FormControl>
         </Grid>
-        <Grid xs={12} sm={12} md={12} item>
+        <Grid xs={12} sm={6} md={4} item>
           <FormControl className={classes.selectContainer}>
             <InputLabel id="schedule-type-label">
               Gerenciamento de Expediente
@@ -495,10 +416,10 @@ export default function Options(props) {
             </FormHelperText>
           </FormControl>
         </Grid>
-        <Grid xs={12} sm={12} md={12} item>
+        <Grid xs={12} sm={6} md={4} item>
           <FormControl className={classes.selectContainer}>
             <InputLabel id="group-type-label">
-              Ignorar Mensagens de Grupos
+              Receber mensagens de grupos
             </InputLabel>
             <Select
               labelId="group-type-label"
@@ -507,15 +428,15 @@ export default function Options(props) {
                 handleGroupType(e.target.value);
               }}
             >
-              <MenuItem value={"disabled"}>Desativado</MenuItem>
-              <MenuItem value={"enabled"}>Ativado</MenuItem>
+              <MenuItem value={"disabled"}>Receber</MenuItem>
+              <MenuItem value={"enabled"}>Não receber</MenuItem>
             </Select>
             <FormHelperText>
               {loadingScheduleType && "Atualizando..."}
             </FormHelperText>
           </FormControl>
         </Grid>
-        <Grid xs={12} sm={12} md={12} item>
+        <Grid xs={12} sm={6} md={4} item>
           <FormControl className={classes.selectContainer}>
             <InputLabel id="call-type-label">
               Aceitar Chamada
@@ -535,7 +456,7 @@ export default function Options(props) {
             </FormHelperText>
           </FormControl>
         </Grid>
-       <Grid xs={12} sm={12} md={12} item>
+        <Grid xs={12} sm={6} md={4} item>
           <FormControl className={classes.selectContainer}>
             <InputLabel id="chatbot-type-label">
               Tipo Chatbot
@@ -548,16 +469,16 @@ export default function Options(props) {
               }}
             >
               <MenuItem value={"text"}>Texto</MenuItem>
-			 {/*<MenuItem value={"button"}>Botão</MenuItem>*/}
-             {/*<MenuItem value={"list"}>Lista</MenuItem>*/}
+              {/*<MenuItem value={"button"}>Botão</MenuItem>*/}
+              {/*<MenuItem value={"list"}>Lista</MenuItem>*/}
             </Select>
             <FormHelperText>
               {loadingChatbotType && "Atualizando..."}
             </FormHelperText>
           </FormControl>
         </Grid>
-		{/* ENVIAR SAUDAÇÃO AO ACEITAR O TICKET */}
-        <Grid xs={12} sm={12} md={12} item>
+        {/* ENVIAR SAUDAÇÃO AO ACEITAR O TICKET */}
+        <Grid xs={12} sm={6} md={4} item>
           <FormControl className={classes.selectContainer}>
             <InputLabel id="sendGreetingAccepted-label">Enviar saudação ao aceitar o ticket</InputLabel>
             <Select
@@ -575,10 +496,10 @@ export default function Options(props) {
             </FormHelperText>
           </FormControl>
         </Grid>
-		{/* ENVIAR SAUDAÇÃO AO ACEITAR O TICKET */}
-		
-		{/* ENVIAR MENSAGEM DE TRANSFERENCIA DE SETOR/ATENDENTE */}
-        <Grid xs={12} sm={12} md={12} item>
+        {/* ENVIAR SAUDAÇÃO AO ACEITAR O TICKET */}
+
+        {/* ENVIAR MENSAGEM DE TRANSFERENCIA DE SETOR/ATENDENTE */}
+        <Grid xs={12} sm={6} md={4} item>
           <FormControl className={classes.selectContainer}>
             <InputLabel id="sendMsgTransfTicket-label">Enviar mensagem de transferencia de Fila/agente</InputLabel>
             <Select
@@ -596,121 +517,28 @@ export default function Options(props) {
             </FormHelperText>
           </FormControl>
         </Grid>
-		
-		{/* ENVIAR SAUDAÇÃO QUANDO HOUVER SOMENTE 1 FILA */}
-        <Grid xs={12} sm={12} md={12} item>
+
+        <Grid xs={12} sm={6} md={4} item>
           <FormControl className={classes.selectContainer}>
-            <InputLabel id="sendGreetingMessageOneQueues-label">Enviar saudação quando houver somente 1 fila</InputLabel>
+            <InputLabel id="userViewTicketsWithoutQueue-label">Pemitir perfil "User" visualizar tickets sem fila</InputLabel>
             <Select
-              labelId="sendGreetingMessageOneQueues-label"
-              value={sendGreetingMessageOneQueues}
+              labelId="userViewTicketsWithoutQueue-label"
+              value={UserViewTicketsWithoutQueue}
               onChange={async (e) => {
-                handleSendGreetingMessageOneQueues(e.target.value);
+                handleUserViewTicketsWithoutQueue(e.target.value);
               }}
             >
               <MenuItem value={"disabled"}>Desabilitado</MenuItem>
               <MenuItem value={"enabled"}>Habilitado</MenuItem>
             </Select>
             <FormHelperText>
-              {loadingSendGreetingMessageOneQueues && "Atualizando..."}
+              {loadingUserViewTicketsWithoutQueue && "Atualizando..."}
             </FormHelperText>
           </FormControl>
         </Grid>
-	
-		
+
       </Grid>
-	  
-		<OnlyForSuperUser
-				user={currentUser}
-				yes={() => (
-				  <>
-					<Grid spacing={3} container>
-					  <Tabs
-						indicatorColor='primary'
-						textColor='primary'
-						scrollButtons='on'
-						variant='scrollable'
-						className={classes.tab}
-						style={{
-						  marginBottom: 20,
-						  marginTop: 20,
-						}}
-					  >
-						<Tab label='Configurações Globais' />
-					  </Tabs>
-					</Grid>
-
-
-            <Grid xs={12} sm={12} md={12} item>
-                <FormControl className={classes.selectContainer}>
-                  <InputLabel id='allowregister-label'>
-                    Registro (Inscrição) Permitida?
-                  </InputLabel>
-                  <Select
-                    labelId='allowregister-label'
-                    value={allowregister}
-                    onChange={async (e) => {
-                      handleallowregister(e.target.value);
-                    }}
-                  >
-                    <MenuItem value={'disabled'}>Não</MenuItem>
-                    <MenuItem value={'enabled'}>Sim</MenuItem>
-                  </Select>
-                  <FormHelperText>
-                    {loadingallowregister && 'Atualizando...'}
-                  </FormHelperText>
-                </FormControl>
-              </Grid>
-
-				  <Grid xs={12} sm={12} md={12} item>
-                <FormControl className={classes.selectContainer}>
-                  <InputLabel id='viewregister-label'>
-                    Registro (Inscrição) Visível?
-                  </InputLabel>
-                  <Select
-                    labelId='viewregister-label'
-                    value={viewregister}
-                    onChange={async (e) => {
-                      handleviewregister(e.target.value);
-                    }}
-                  >
-                    <MenuItem value={'disabled'}>Não</MenuItem>
-                    <MenuItem value={'enabled'}>Sim</MenuItem>
-                  </Select>
-                  <FormHelperText>
-                    {loadingviewregister && 'Atualizando...'}
-                  </FormHelperText>
-                </FormControl>
-              </Grid>
-			  
-			                <Grid xs={12} sm={12} md={12} item>
-                <FormControl className={classes.selectContainer}>
-                  <InputLabel id='trial-label'>Tempo de Trial?</InputLabel>
-                  <Select
-                    labelId='trial-label'
-                    value={trial}
-                    onChange={async (e) => {
-                      handletrial(e.target.value);
-                    }}
-                  >
-                    <MenuItem value={'1'}>1</MenuItem>
-                    <MenuItem value={'2'}>2</MenuItem>
-                    <MenuItem value={'3'}>3</MenuItem>
-                    <MenuItem value={'4'}>4</MenuItem>
-                    <MenuItem value={'5'}>5</MenuItem>
-                    <MenuItem value={'6'}>6</MenuItem>
-                    <MenuItem value={'7'}>7</MenuItem>
-                  </Select>
-                  <FormHelperText>
-                    {loadingtrial && 'Atualizando...'}
-                  </FormHelperText>
-                </FormControl>
-              </Grid>
-
-      </>
-        )}
-      />
-	        <Grid spacing={3} container>
+      <Grid spacing={3} container>
         <Tabs
           indicatorColor="primary"
           textColor="primary"

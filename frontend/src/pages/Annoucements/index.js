@@ -152,7 +152,7 @@ const Announcements = () => {
     return () => {
       socket.disconnect();
     };
-  }, [socketManager, user.companyId]);
+  }, [socketManager]);
 
   const fetchAnnouncements = async () => {
     try {

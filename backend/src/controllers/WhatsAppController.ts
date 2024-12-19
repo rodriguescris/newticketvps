@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { getIO } from "../libs/socket";
-import { removeWbot, restartWbot } from "../libs/wbot";
+import { removeWbot } from "../libs/wbot";
 import { StartWhatsAppSession } from "../services/WbotServices/StartWhatsAppSession";
 
 import CreateWhatsAppService from "../services/WhatsappService/CreateWhatsAppService";
@@ -8,6 +8,12 @@ import DeleteWhatsAppService from "../services/WhatsappService/DeleteWhatsAppSer
 import ListWhatsAppsService from "../services/WhatsappService/ListWhatsAppsService";
 import ShowWhatsAppService from "../services/WhatsappService/ShowWhatsAppService";
 import UpdateWhatsAppService from "../services/WhatsappService/UpdateWhatsAppService";
+import { closeTicketsImported } from "../services/WhatsappService/ImportWhatsAppMessageService";
+
+import { isNil, head } from "lodash";
+import fs from "fs";
+import path from "path";
+import Whatsapp from "../models/Whatsapp";
 import AppError from "../errors/AppError";
 
 interface WhatsappData {
@@ -21,20 +27,24 @@ interface WhatsappData {
   status?: string;
   isDefault?: boolean;
   token?: string;
-  //sendIdQueue?: number;
-  //timeSendQueue?: number;
-  transferQueueId?: number;
-  timeToTransfer?: number;  
+  sendIdQueue?: number;
+  timeSendQueue?: number;
   promptId?: number;
   maxUseBotQueues?: number;
   timeUseBotQueues?: number;
   expiresTicket?: number;
   expiresInactiveMessage?: string;
+  importOldMessages?: string;
+  importRecentMessages?: string;
+  importOldMessagesGroups?: boolean;
+  closedTicketsPostImported?: boolean;
 }
 
 interface QueryParams {
   session?: number | string;
 }
+
+
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
   const { companyId } = req.user;
@@ -54,15 +64,17 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     outOfHoursMessage,
     queueIds,
     token,
-    //timeSendQueue,
-    //sendIdQueue,
-	transferQueueId,
-	timeToTransfer,
+    timeSendQueue,
+    sendIdQueue,
     promptId,
     maxUseBotQueues,
     timeUseBotQueues,
     expiresTicket,
-    expiresInactiveMessage
+    expiresInactiveMessage,
+    importOldMessages,
+    importRecentMessages,
+    closedTicketsPostImported,
+    importOldMessagesGroups,
   }: WhatsappData = req.body;
   const { companyId } = req.user;
 
@@ -76,15 +88,17 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     queueIds,
     companyId,
     token,
-    //timeSendQueue,
-    //sendIdQueue,
-	transferQueueId,
-	timeToTransfer,	
+    timeSendQueue,
+    sendIdQueue,
     promptId,
     maxUseBotQueues,
     timeUseBotQueues,
     expiresTicket,
-    expiresInactiveMessage
+    expiresInactiveMessage,
+    importOldMessages,
+    importRecentMessages,
+    closedTicketsPostImported,
+    importOldMessagesGroups
   });
 
   StartWhatsAppSession(whatsapp, companyId);
@@ -130,13 +144,13 @@ export const update = async (
   });
 
   const io = getIO();
-  io.to(`company-${companyId}-mainchannel`).emit(`company-${companyId}-whatsapp`, {
+  io.emit(`company-${companyId}-whatsapp`, {
     action: "update",
     whatsapp
   });
 
   if (oldDefaultWhatsapp) {
-    io.to(`company-${companyId}-mainchannel`).emit(`company-${companyId}-whatsapp`, {
+    io.to(`company-${companyId}-mainchannel`).to(`company-${companyId}-mainchannel`).emit(`company-${companyId}-whatsapp`, {
       action: "update",
       whatsapp: oldDefaultWhatsapp
     });
@@ -166,18 +180,50 @@ export const remove = async (
   return res.status(200).json({ message: "Whatsapp deleted." });
 };
 
+export const closedTickets = async (req: Request, res: Response) => {
+  const { whatsappId } = req.params
 
-export const restart = async (
-  req: Request,
-  res: Response
-): Promise<Response> => {
-  const { companyId, profile } = req.user;
+  closeTicketsImported(whatsappId)
 
-  if (profile !== "admin") {
-    throw new AppError("ERR_NO_PERMISSION", 403);
+  return res.status(200).json("whatsapp");
+
+}
+
+export const mediaUpload = async (req: Request, res: Response): Promise<Response> => {
+  const { id } = req.params;
+  const files = req.files as Express.Multer.File[];
+  const file = head(files);
+
+  try {
+    const wpp = await Whatsapp.findByPk(id);
+    wpp.mediaPath = file.filename;
+    wpp.mediaName = file.originalname;
+
+    await wpp.save();
+    return res.send().status(201);
+  } catch (err: any) {
+    throw new AppError(err.message);
   }
+};
 
-  await restartWbot(companyId);
+export const deleteMedia = async (req: Request, res: Response): Promise<Response> => {
 
-  return res.status(200).json({ message: "Whatsapp restart." });
+  const { id } = req.params;
+
+  try {
+    const wpp = await Whatsapp.findByPk(id);
+    const filePath = path.resolve("public", wpp.mediaPath);
+    const fileExists = fs.existsSync(filePath);
+
+    if (fileExists) {
+      fs.unlinkSync(filePath);
+    }
+
+    wpp.mediaPath = null;
+    wpp.mediaName = null;
+    await wpp.save();
+    return res.send().status(200);
+  } catch (err: any) {
+    throw new AppError(err.message);
+  }
 };

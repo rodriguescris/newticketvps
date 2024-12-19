@@ -15,9 +15,6 @@ import { verifyMessage } from "../WbotServices/wbotMessageListener";
 import ListSettingsServiceOne from "../SettingServices/ListSettingsServiceOne"; //NOVO PLW DESIGN//
 import ShowUserService from "../UserServices/ShowUserService"; //NOVO PLW DESIGN//
 import { isNil } from "lodash";
-import Whatsapp from "../../models/Whatsapp";
-import { Op } from "sequelize";
-import AppError from "../../errors/AppError";
 
 interface TicketData {
   status?: string;
@@ -29,6 +26,7 @@ interface TicketData {
   useIntegration?: boolean;
   integrationId?: number | null;
   promptId?: number | null;
+  amountUsedBotQueues?: number;
   lastMessage?: string;
 }
 
@@ -52,14 +50,12 @@ const UpdateTicketService = async ({
 
   try {
     const { status } = ticketData;
-    let { queueId, userId, whatsappId, lastMessage = null } = ticketData;
+    let { queueId, userId, whatsappId, amountUsedBotQueues, lastMessage = null } = ticketData;
     let chatbot: boolean | null = ticketData.chatbot || false;
     let queueOptionId: number | null = ticketData.queueOptionId || null;
     let promptId: number | null = ticketData.promptId || null;
     let useIntegration: boolean | null = ticketData.useIntegration || false;
     let integrationId: number | null = ticketData.integrationId || null;
-
-    console.log("ticketData", ticketData);
 
     const io = getIO();
 
@@ -122,18 +118,21 @@ const UpdateTicketService = async ({
       );
 
       if (setting?.value === "enabled") {
-        if (ticketTraking.ratingAt == null) {
+        if (ticketTraking.ratingAt === null && ticket.userId !== null) {
           const ratingTxt = ratingMessage || "";
-          let bodyRatingMessage = `\u200e${ratingTxt}\n\n`;
+          let bodyRatingMessage = `\u200e ${ratingTxt}\n\n`;
           bodyRatingMessage +=
             "Digite de 1 à 3 para qualificar nosso atendimento:\n*1* - _Insatisfeito_\n*2* - _Satisfeito_\n*3* - _Muito Satisfeito_\n\n";
-          await SendWhatsAppMessage({ body: bodyRatingMessage, ticket });
+          const sendRatingMessage = await SendWhatsAppMessage({ body: bodyRatingMessage, ticket });
+
+          await verifyMessage(sendRatingMessage, ticket, ticket.contact, false, ticketTraking);
 
           await ticketTraking.update({
-            ratingAt: moment().toDate()
+            ratingAt: moment().toDate(),
+            rated: false
           });
 
-          io.to(`company-${ticket.companyId}-open`)
+          io.to(`company-${ticket.companyId}-mainchannel-open`)
             .to(`queue-${ticket.queueId}-open`)
             .to(ticketId.toString())
             .emit(`company-${ticket.companyId}-ticket`, {
@@ -143,13 +142,12 @@ const UpdateTicketService = async ({
 
           return { ticket, oldStatus, oldUserId };
         }
-        ticketTraking.ratingAt = moment().toDate();
-        ticketTraking.rated = false;
       }
 
       if (!isNil(complationMessage) && complationMessage !== "") {
-        const body = `\u200e${complationMessage}`;
-        await SendWhatsAppMessage({ body, ticket });
+        const body = `\u200e ${complationMessage}`;
+        const sendMessage = await SendWhatsAppMessage({ body, ticket });
+        await verifyMessage(sendMessage, ticket, ticket.contact, false, ticketTraking);
       }
       await ticket.update({
         promptId: null,
@@ -162,6 +160,10 @@ const UpdateTicketService = async ({
       ticketTraking.finishedAt = moment().toDate();
       ticketTraking.whatsappId = ticket.whatsappId;
       ticketTraking.userId = ticket.userId;
+      ticketTraking.contactId = ticket.contactId;
+      ticketTraking.queueId = ticket.queueId;
+      ticketTraking.lastMessage = lastMessage !== null ? lastMessage : ticket.lastMessage;
+      ticketTraking.status = status;
 
       /*    queueId = null;
             userId = null; */
@@ -169,6 +171,12 @@ const UpdateTicketService = async ({
 
     if (queueId !== undefined && queueId !== null) {
       ticketTraking.queuedAt = moment().toDate();
+      ticketTraking.lastMessage = lastMessage !== null ? lastMessage : ticket.lastMessage;
+      ticketTraking.status = status;
+      ticketTraking.userId = ticket.userId;
+      ticketTraking.contactId = ticket.contactId;
+      ticketTraking.queueId = ticket.queueId;
+      ticketTraking.lastMessage = lastMessage !== null ? lastMessage : ticket.lastMessage;
     }
 
     const settingsTransfTicket = await ListSettingsServiceOne({ companyId: companyId, key: "sendMsgTransfTicket" });
@@ -187,7 +195,7 @@ const UpdateTicketService = async ({
             text: msgtxt
           }
         );
-        await verifyMessage(queueChangedMessage, ticket, ticket.contact);
+        await verifyMessage(queueChangedMessage, ticket, ticket.contact, false, ticketTraking);
       }
       else
         // Mensagem de transferencia do ATENDENTE
@@ -202,7 +210,7 @@ const UpdateTicketService = async ({
               text: msgtxt
             }
           );
-          await verifyMessage(queueChangedMessage, ticket, ticket.contact);
+          await verifyMessage(queueChangedMessage, ticket, ticket.contact, false, ticketTraking);
         }
         else
           // Mensagem de transferencia do ATENDENTE e da FILA
@@ -218,7 +226,7 @@ const UpdateTicketService = async ({
                 text: msgtxt
               }
             );
-            await verifyMessage(queueChangedMessage, ticket, ticket.contact);
+            await verifyMessage(queueChangedMessage, ticket, ticket.contact, false, ticketTraking);
           } else
             if (oldUserId !== undefined && isNil(userId) && oldQueueId !== queueId && !isNil(queueId)) {
 
@@ -232,8 +240,8 @@ const UpdateTicketService = async ({
                   text: msgtxt
                 }
               );
-              await verifyMessage(queueChangedMessage, ticket, ticket.contact);
-            }      
+              await verifyMessage(queueChangedMessage, ticket, ticket.contact, false, ticketTraking);
+            }
     }
 
     await ticket.update({
@@ -243,8 +251,14 @@ const UpdateTicketService = async ({
       whatsappId,
       chatbot,
       queueOptionId,
-      lastMessage: lastMessage !== null ? lastMessage : ticket.lastMessage
+      amountUsedBotQueues: status === "closed" ? 0 : amountUsedBotQueues ? amountUsedBotQueues : ticket.amountUsedBotQueues,
+      lastMessage: lastMessage !== null ? lastMessage : ticket.lastMessage,
+      imported: status === "closed" ? null : ticket.imported
     });
+
+    ticketTraking.queueId = queueId;
+    ticketTraking.userId = status !== "closed" ? userId : ticket.userId;
+    ticketTraking.lastMessage = lastMessage !== null ? lastMessage : ticket.lastMessage;
 
     await ticket.reload();
 
@@ -254,6 +268,7 @@ const UpdateTicketService = async ({
         queuedAt: moment().toDate(),
         startedAt: null,
         userId: null,
+        queueId: null
       });
     }
 
@@ -263,8 +278,11 @@ const UpdateTicketService = async ({
         ratingAt: null,
         rated: false,
         whatsappId,
+        userId: ticket.userId,
+        queueId: ticket.queueId,
+        contactId: ticket.contactId,
         lastMessage: lastMessage !== null ? lastMessage : ticket.lastMessage,
-        userId: ticket.userId
+        status
       });
     }
 
@@ -274,7 +292,6 @@ const UpdateTicketService = async ({
 
       io.to(`company-${companyId}-${oldStatus}`)
         .to(`queue-${ticket.queueId}-${oldStatus}`)
-        .to(`user-${oldUserId}`)
         .emit(`company-${companyId}-ticket`, {
           action: "delete",
           ticketId: ticket.id
@@ -286,8 +303,6 @@ const UpdateTicketService = async ({
       .to(`queue-${ticket.queueId}-${ticket.status}`)
       .to(`queue-${ticket.queueId}-notification`)
       .to(ticketId.toString())
-      .to(`user-${ticket?.userId}`)
-      .to(`user-${oldUserId}`)
       .emit(`company-${companyId}-ticket`, {
         action: "update",
         ticket

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useReducer, useContext, useRef } from "reac
 
 import { toast } from "react-toastify";
 import { useHistory } from "react-router-dom";
-import { Tooltip } from "@material-ui/core";
+
 import { makeStyles } from "@material-ui/core/styles";
 import Table from "@material-ui/core/Table";
 import TableBody from "@material-ui/core/TableBody";
@@ -16,15 +16,17 @@ import WhatsAppIcon from "@material-ui/icons/WhatsApp";
 import SearchIcon from "@material-ui/icons/Search";
 import TextField from "@material-ui/core/TextField";
 import InputAdornment from "@material-ui/core/InputAdornment";
-import CheckCircleIcon from "@material-ui/icons/CheckCircle";
+
 import IconButton from "@material-ui/core/IconButton";
 import DeleteOutlineIcon from "@material-ui/icons/DeleteOutline";
 import EditIcon from "@material-ui/icons/Edit";
+import ArrowDropDownIcon from '@material-ui/icons/ArrowDropDown';
+
 import api from "../../services/api";
 import TableRowSkeleton from "../../components/TableRowSkeleton";
 import ContactModal from "../../components/ContactModal";
 import ConfirmationModal from "../../components/ConfirmationModal/";
-import CancelIcon from "@material-ui/icons/Cancel";
+
 import { i18n } from "../../translate/i18n";
 import MainHeader from "../../components/MainHeader";
 import Title from "../../components/Title";
@@ -35,9 +37,19 @@ import { AuthContext } from "../../context/Auth/AuthContext";
 import { Can } from "../../components/Can";
 import NewTicketModal from "../../components/NewTicketModal";
 import { SocketContext } from "../../context/Socket/SocketContext";
+import CloudDownloadIcon from '@material-ui/icons/CloudDownload';
+import * as XLSX from "xlsx";
 import { generateColor } from "../../helpers/colorGenerator";
 import { getInitials } from "../../helpers/getInitials";
-import {CSVLink} from "react-csv";
+
+import {
+  Backup,
+  ContactPhone,
+} from "@material-ui/icons";
+
+import { CSVLink } from "react-csv";
+import { Divider, Menu, MenuItem } from "@material-ui/core";
+import ContactImportWpModal from "../../components/ContactImportWpModal";
 
 const reducer = (state, action) => {
   if (action.type === "LOAD_CONTACTS") {
@@ -109,7 +121,11 @@ const Contacts = () => {
   const [deletingContact, setDeletingContact] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [hasMore, setHasMore] = useState(false);
-  const fileUploadRef = useRef(null);
+  const [anchorEl, setAnchorEl] = React.useState(null);
+  const open = Boolean(anchorEl);
+  const [contactsToImport, setContactsToImport] = useState([])
+  const [importContactModalOpen, setImportContactModalOpen] = useState(false);
+  const [hideNum, setHideNum] = useState(false);
 
   const socketManager = useContext(SocketContext);
 
@@ -155,7 +171,7 @@ const Contacts = () => {
     return () => {
       socket.disconnect();
     };
-  }, [ socketManager]);
+  }, [socketManager]);
 
   const handleSearch = (event) => {
     setSearchParam(event.target.value.toLowerCase());
@@ -210,45 +226,15 @@ const Contacts = () => {
     setSearchParam("");
     setPageNumber(1);
   };
-  
+
   const handleimportContact = async () => {
     try {
-      if (!!fileUploadRef.current.files[0]) {
-        const formData = new FormData();
-        formData.append("file", fileUploadRef.current.files[0]);
-        await api.request({
-          url: `/contacts/upload`,
-          method: "POST",
-          data: formData,
-        });
-      } else {
-        await api.post("/contacts/import");
-      }
+      await api.post("/contacts/import");
       history.go(0);
     } catch (err) {
       toastError(err);
     }
   };
-  
-function getDateLastMessage(contact) {
-    if (!contact) return null;
-    if (!contact.tickets) return null;
-
-    if (contact.tickets.length > 0) {
-        const date = new Date(contact.tickets[contact.tickets.length - 1].updatedAt);
-
-        const day = date.getDate() > 9 ? date.getDate() : `0${date.getDate()}`;
-        const month = (date.getMonth() + 1) > 9 ? (date.getMonth() + 1) : `0${date.getMonth() + 1}`;
-        const year = date.getFullYear().toString().slice(-2);
-
-        const hours = date.getHours() > 9 ? date.getHours() : `0${date.getHours()}`;
-        const minutes = date.getMinutes() > 9 ? date.getMinutes() : `0${date.getMinutes()}`;
-
-        return `${day}/${month}/${year} ${hours}:${minutes}`;
-    }
-
-    return null;
-}
 
   const loadMore = () => {
     setPageNumber((prevState) => prevState + 1);
@@ -262,6 +248,67 @@ function getDateLastMessage(contact) {
     }
   };
 
+  const handleClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleDownloadModelToExport = () => {
+    const allDatas = [];
+
+    allDatas.push({
+      name: "Contato 1",
+      number: "5511999999999",
+      email: "email@email.com",
+    });
+
+    allDatas.push({
+      name: "Contato 2",
+      number: "5511999999999",
+      email: "email@email.com",
+    });
+
+    const exportData = allDatas.map((e) => {
+      return { name: e.name, number: e.number, email: e.email };
+    });
+
+    let wb = XLSX.utils.book_new();
+    let ws = XLSX.utils.json_to_sheet(exportData);
+    XLSX.utils.book_append_sheet(wb, ws, "Contatos");
+    XLSX.writeFile(wb, "exemplo_upload.xlsx");
+
+    handleClose();
+  }
+
+
+
+  const handleImportChange = (e) => {
+    const [file] = e.target.files;
+    const reader = new FileReader();
+
+    reader.onload = (evt) => {
+      const bstr = evt.target.result;
+      const wb = XLSX.read(bstr, { type: "binary" });
+      const wsname = wb.SheetNames[0];
+      const ws = wb.Sheets[wsname];
+      const data = XLSX.utils.sheet_to_json(ws);
+      setContactsToImport(data)
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  const handleOpenImportModal = () => {
+    setImportContactModalOpen(true);
+    handleClose();
+  }
+
+  const handleReload = () => {
+    dispatch({ type: "RESET" });
+  }
+
   return (
     <MainContainer className={classes.mainContainer}>
       <NewTicketModal
@@ -271,18 +318,27 @@ function getDateLastMessage(contact) {
           handleCloseOrOpenTicket(ticket);
         }}
       />
+
+      <ContactImportWpModal
+        isOpen={importContactModalOpen}
+        handleClose={() => setImportContactModalOpen(false)}
+        selectedTags={null}
+        hideNum={hideNum}
+        userProfile={user.profile}
+      />
+
       <ContactModal
         open={contactModalOpen}
         onClose={handleCloseContactModal}
         aria-labelledby="form-dialog-title"
         contactId={selectedContactId}
       ></ContactModal>
+
       <ConfirmationModal
         title={
           deletingContact
-            ? `${i18n.t("contacts.confirmationModal.deleteTitle")} ${
-                deletingContact.name
-              }?`
+            ? `${i18n.t("contacts.confirmationModal.deleteTitle")} ${deletingContact.name
+            }?`
             : `${i18n.t("contacts.confirmationModal.importTitlte")}`
         }
         open={confirmOpen}
@@ -314,22 +370,36 @@ function getDateLastMessage(contact) {
             }}
           />
           <Button
+            endIcon={<ArrowDropDownIcon />}
             variant="contained"
             color="primary"
-            onClick={(e) => setConfirmOpen(true)}
+            // onClick={(e) => setConfirmOpen(true)}
+            onClick={handleClick}
           >
             {i18n.t("contacts.buttons.import")}
           </Button>
-          <Button
-          variant="contained"
-          color="primary"
-          onClick={() => {
-            fileUploadRef.current.value = null;
-            fileUploadRef.current.click();
-          }}
-      >
-        {i18n.t("contacts.buttons.importSheet")}
-      </Button>
+
+
+
+          <Menu
+            id="basic-menu"
+            anchorEl={anchorEl}
+            open={open}
+            onClose={handleClose}
+            MenuListProps={{
+              'aria-labelledby': 'basic-button',
+            }}
+          >
+            <MenuItem onClick={() => { setConfirmOpen(true) }}> <ContactPhone fontSize="small" color="primary" style={{ marginRight: 10, }} /> Importar Agenda</MenuItem>
+            <MenuItem onClick={handleOpenImportModal}><Backup fontSize="small" color="primary" style={{ marginRight: 10, }} />Importar Excel</MenuItem>
+            <Divider variant="middle" />
+
+            <CSVLink style={{ textDecoration: 'none', color: 'inherit' }} separator=";" filename={'contatos.csv'} data={contacts.map((contact) => ({ name: contact.name, number: contact.number, email: contact.email }))}>
+              <MenuItem onClick={handleClose}><CloudDownloadIcon fontSize="small" color="primary" style={{ marginRight: 10, }} />Exportar CSV</MenuItem>
+            </CSVLink>
+            <MenuItem onClick={handleDownloadModelToExport}><CloudDownloadIcon fontSize="small" color="primary" style={{ marginRight: 10, }} />Modelo Importação</MenuItem>
+          </Menu>
+
           <Button
             variant="contained"
             color="primary"
@@ -338,11 +408,13 @@ function getDateLastMessage(contact) {
             {i18n.t("contacts.buttons.add")}
           </Button>
 
-         <CSVLink style={{ textDecoration:'none'}} separator=";" filename={'whaticket.csv'} data={contacts.map((contact) => ({ name: contact.name, number: contact.number, email: contact.email }))}>
-          <Button	variant="contained" color="primary"> 
-          EXPORTAR CONTATOS 
-          </Button>
-          </CSVLink>		  
+          <DeleteContacts onReload={handleReload} />
+
+          {/* <CSVLink style={{ textDecoration: 'none' }} separator=";" filename={'whaticket.csv'} data={contacts.map((contact) => ({ name: contact.name, number: contact.number, email: contact.email }))}>
+            <Button variant="contained" color="primary">
+              EXPORTAR CONTATOS
+            </Button>
+          </CSVLink> */}
 
         </MainHeaderButtonsWrapper>
       </MainHeader>
@@ -351,19 +423,6 @@ function getDateLastMessage(contact) {
         variant="outlined"
         onScroll={handleScroll}
       >
-        <>
-          <input
-              style={{ display: "none" }}
-              id="upload"
-              name="file"
-              type="file"
-              accept=".xls,.xlsx"
-              onChange={() => {
-                setConfirmOpen(true);
-              }}
-              ref={fileUploadRef}
-          />
-        </>
         <Table size="small">
           <TableHead>
             <TableRow>
@@ -376,10 +435,6 @@ function getDateLastMessage(contact) {
                 {i18n.t("contacts.table.email")}
               </TableCell>
               <TableCell align="center">
-              {"Última Interação"}
-              </TableCell>
-			  <TableCell align="center">{"Status"}</TableCell>
-              <TableCell align="center">
                 {i18n.t("contacts.table.actions")}
               </TableCell>
             </TableRow>
@@ -389,31 +444,15 @@ function getDateLastMessage(contact) {
               {contacts.map((contact) => (
                 <TableRow key={contact.id}>
                   <TableCell style={{ paddingRight: 0 }}>
-                    { <Avatar
+                    <Avatar
                       style={{ backgroundColor: generateColor(contact?.number), fontWeight: "bold", color: "white" }}
                       src={contact.profilePicUrl}>
                       {getInitials(contact?.name)}
-                    </Avatar>}
+                    </Avatar>
                   </TableCell>
                   <TableCell>{contact.name}</TableCell>
                   <TableCell align="center">{contact.number}</TableCell>
                   <TableCell align="center">{contact.email}</TableCell>
-                                    <TableCell align="center">
-                                        {getDateLastMessage(contact)}
-                                    </TableCell>
-                                    <TableCell align="center">
-                                        {contact.active ? (
-                                            <CheckCircleIcon
-                                                style={{ color: "green" }}
-                                                fontSize="small"
-                                            />
-                                        ) : (
-                                            <CancelIcon
-                                                style={{ color: "red" }}
-                                                fontSize="small"
-                                            />
-                                        )}
-                                    </TableCell>
                   <TableCell align="center">
                     <IconButton
                       size="small"
@@ -458,3 +497,42 @@ function getDateLastMessage(contact) {
 };
 
 export default Contacts;
+
+const DeleteContacts = ({ onReload }) => {
+
+
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  const handleDeleteContact = async () => {
+    try {
+      await api.delete(`/delete-contacts`);
+      toast.success(i18n.t("contacts.toasts.deleted"));
+      onReload();
+    } catch (error) {
+      toastError(error);
+    }
+  }
+
+  return (
+    <>
+      <ConfirmationModal
+        title={`${i18n.t("contacts.confirmationModal.deleteTitleAll")}`}
+        open={confirmOpen}
+        onClose={setConfirmOpen}
+        onConfirm={(e) =>
+          handleDeleteContact()
+        }
+      >
+        {i18n.t("contacts.confirmationModal.deleteAllMessage")}
+
+      </ConfirmationModal>
+      <Button
+        variant="contained"
+        color="secondary"
+        onClick={(e) => setConfirmOpen(true)}
+      >
+        {i18n.t("contacts.buttons.remove")}
+      </Button>
+    </>
+  )
+}

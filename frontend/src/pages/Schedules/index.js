@@ -177,7 +177,7 @@ const Schedules = () => {
     return () => {
       socket.disconnect();
     };
-  }, [handleOpenScheduleModalFromContactId, socketManager, user]);
+  }, [handleOpenScheduleModalFromContactId, user, socketManager]);
 
   const cleanContact = () => {
     setContactId("");
@@ -288,9 +288,9 @@ const Schedules = () => {
         <Calendar
           messages={defaultMessages}
           formats={{
-          agendaDateFormat: "DD/MM ddd",
-          weekdayFormat: "dddd"
-      }}
+            agendaDateFormat: "DD/MM ddd",
+            weekdayFormat: "dddd"
+          }}
           localizer={localizer}
           events={schedules.map((schedule) => ({
             title: (

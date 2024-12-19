@@ -19,6 +19,8 @@ import TicketHeader from "../TicketHeader";
 import TicketInfo from "../TicketInfo";
 import { SocketContext } from "../../context/Socket/SocketContext";
 import { ForwardMessageContext } from "../../context/ForwarMessage/ForwardMessageContext";
+
+
 const drawerWidth = 320;
 
 const useStyles = makeStyles((theme) => ({
@@ -67,6 +69,7 @@ export default function TicketMessagesDialog({ open, handleClose, ticketId }) {
   const [contact, setContact] = useState({});
   const [ticket, setTicket] = useState({});
   const { showSelectMessageCheckbox } = useContext(ForwardMessageContext);
+
   const socketManager = useContext(SocketContext);
 
   useEffect(() => {
@@ -110,15 +113,15 @@ export default function TicketMessagesDialog({ open, handleClose, ticketId }) {
     let socket = null;
 
     if (open) {
-      const socket = socketManager.getSocket(companyId);
-      socket.on("ready", () => socket.emit("joinChatBox", `${ticket.id}`));
+      socket = socketManager.getSocket(companyId);
+      socket.on("connect", () => socket.emit("joinChatBox", `${ticket.id}`));
 
       socket.on(`company-${companyId}-ticket`, (data) => {
-        if (data.action === "update" && data.ticket.id === ticket.id) {
+        if (data.action === "update") {
           setTicket(data.ticket);
         }
 
-        if (data.action === "delete" && data.ticketId === ticket.id) {
+        if (data.action === "delete") {
           // toast.success("Ticket deleted sucessfully.");
           history.push("/tickets");
         }
@@ -166,6 +169,7 @@ export default function TicketMessagesDialog({ open, handleClose, ticketId }) {
           ticket={ticket}
           ticketId={ticket.id}
           isGroup={ticket.isGroup}
+          user={user}
         ></MessagesList>
       </Box>
     );

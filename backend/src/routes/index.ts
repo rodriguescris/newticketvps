@@ -30,8 +30,7 @@ import ticketTagRoutes from "./ticketTagRoutes";
 import filesRoutes from "./filesRoutes";
 import promptRoutes from "./promptRouter";
 import queueIntegrationRoutes from "./queueIntegrationRoutes";
-import forgotsRoutes from "./forgotPasswordRoutes";
-import versionRouter from "./versionRoutes";
+import passwordRoutes from "./passwordRoutes";
 const routes = Router();
 
 routes.use(userRoutes);
@@ -65,7 +64,6 @@ routes.use(ticketTagRoutes);
 routes.use(filesRoutes);
 routes.use(promptRoutes);
 routes.use(queueIntegrationRoutes);
-routes.use(forgotsRoutes);
-routes.use(versionRouter);
+routes.use(passwordRoutes);
 
 export default routes;

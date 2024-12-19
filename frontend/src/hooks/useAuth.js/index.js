@@ -78,7 +78,7 @@ const useAuth = () => {
     const companyId = localStorage.getItem("companyId");
     if (companyId) {
    
-      const socket = socketManager.getSocket(companyId);
+    const socket = socketManager.getSocket(companyId);
 
       socket.on(`company-${companyId}-user`, (data) => {
         if (data.action === "update" && data.user.id === user.id) {
@@ -91,7 +91,8 @@ const useAuth = () => {
       socket.disconnect();
     };
   }
-  }, [socketManager, user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, socketManager]);
 
   const handleLogin = async (userData) => {
     setLoading(true);

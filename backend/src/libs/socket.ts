@@ -1,3 +1,14 @@
+/*
+
+   NÃO REMOVER
+
+   Fornecido por Claudemir Todo Bom
+   Licenciado para Raphael Batista / Equipechat
+   
+   Licença vitalícia e exclusiva. Não pode ser sublicenciado a terceiros
+
+ */
+
 import { Server as SocketIO } from "socket.io";
 import { Server } from "http";
 import AppError from "../errors/AppError";
@@ -26,7 +37,7 @@ export const initIO = (httpServer: Server): SocketIO => {
       tokenData = verify(token as string, authConfig.secret);
       logger.debug(tokenData, "io-onConnection: tokenData");
     } catch (error) {
-      logger.warn(`[libs/socket.ts] Error decoding token: ${error?.message}`);
+      logger.error(error, "Error decoding token");
       socket.disconnect();
       return io;
     }
@@ -101,10 +112,6 @@ export const initIO = (httpServer: Server): SocketIO => {
             logger.debug(`User ${user.id} of company ${user.companyId} joined queue ${queue.id} channel.`);
             socket.join(`queue-${queue.id}-notification`);
           });
-          if (user.allTicket === "enabled") {
-            socket.join("queue-null-notification");
-          }
-
         }
       }
       logger.debug(`joinNotification[${c}]: User: ${user.id}`);
@@ -120,11 +127,8 @@ export const initIO = (httpServer: Server): SocketIO => {
             logger.debug(`User ${user.id} of company ${user.companyId} leaved queue ${queue.id} channel.`);
             socket.leave(`queue-${queue.id}-notification`);
           });
-          if (user.allTicket === "enabled") {
-            socket.leave("queue-null-notification");
-          }
         }
-      }
+       }
       logger.debug(`leaveNotification[${c}]: User: ${user.id}`);
     });
  
@@ -138,9 +142,6 @@ export const initIO = (httpServer: Server): SocketIO => {
             logger.debug(`User ${user.id} of company ${user.companyId} joined queue ${queue.id} pending tickets channel.`);
             socket.join(`queue-${queue.id}-pending`);
           });
-          if (user.allTicket === "enabled") {
-            socket.join("queue-null-pending");
-          }
         } else {
           logger.debug(`User ${user.id} cannot subscribe to ${status}`);
         }
@@ -157,9 +158,6 @@ export const initIO = (httpServer: Server): SocketIO => {
             logger.debug(`User ${user.id} of company ${user.companyId} leaved queue ${queue.id} pending tickets channel.`);
             socket.leave(`queue-${queue.id}-pending`);
           });
-          if (user.allTicket === "enabled") {
-            socket.leave("queue-null-pending");
-          }
         }
       }
     });

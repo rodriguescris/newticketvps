@@ -131,7 +131,6 @@ const TicketListItem = ({ ticket }) => {
     }
     history.push(`/tickets/${ticket.uuid}`);
   };
-  console.log("🚀 Console Log : ticket.lastMessage", ticket.lastMessage);
 
   const handleSelectTicket = (ticket) => {
     history.push(`/tickets/${ticket.uuid}`);
@@ -225,15 +224,6 @@ const TicketListItem = ({ ticket }) => {
             </span>
           } */
         />
-        {ticket.lastMessage ? (
-  ticket.lastMessage.includes("VCARD") ? (
-    <Typography>Novo contato recebido...</Typography>
-  ) : (
-    <MarkdownWrapper>{ticket.lastMessage}</MarkdownWrapper>
-  )
-) : (
-  <br />
-)}
         {ticket.status === "pending" && (
           <ButtonWithSpinner
             color="primary"

@@ -149,7 +149,7 @@ const FileLists = () => {
         return () => {
             socket.disconnect();
         };
-    }, [socketManager, user]);
+    }, [user, socketManager]);
 
     const handleOpenFileListModal = () => {
         setSelectedFileList(null);

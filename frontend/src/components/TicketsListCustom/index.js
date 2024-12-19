@@ -11,6 +11,7 @@ import useTickets from "../../hooks/useTickets";
 import { i18n } from "../../translate/i18n";
 import { AuthContext } from "../../context/Auth/AuthContext";
 import { SocketContext } from "../../context/Socket/SocketContext";
+import useSettings from '../../hooks/useSettings';
 
 const useStyles = makeStyles((theme) => ({
   ticketsListWrapper: {
@@ -137,7 +138,7 @@ const reducer = (state, action) => {
     }
     return [...state];
   }
-
+  
   if (action.type === "UPDATE_TICKET_PRESENCE") {
     const data = action.payload;
     const ticketIndex = state.findIndex((t) => t.id === data.ticketId);
@@ -176,10 +177,25 @@ const TicketsListCustom = (props) => {
   const classes = useStyles();
   const [pageNumber, setPageNumber] = useState(1);
   const [ticketsList, dispatch] = useReducer(reducer, []);
+  const [visibleTicket, setVisibleTicket] = useState(false);
   const { user } = useContext(AuthContext);
   const { profile, queues } = user;
+  const { getAll } = useSettings();
 
   const socketManager = useContext(SocketContext);
+
+  useEffect(() => {
+    getAll()
+      .then((response) => {
+        const userVisibleTicket = response.some((setting) => {
+          return (setting?.key === "userViewTicketsWithoutQueue" &&
+            setting?.value === "enabled")
+        })
+        setVisibleTicket(userVisibleTicket);
+      });
+
+
+  }, [])
 
   useEffect(() => {
     dispatch({ type: "RESET" });
@@ -199,7 +215,13 @@ const TicketsListCustom = (props) => {
   useEffect(() => {
     const queueIds = queues.map((q) => q.id);
     const filteredTickets = tickets.filter(
-      (t) => queueIds.indexOf(t.queueId) > -1
+      (t) => {
+        return (
+          queueIds.indexOf(t.queueId) > -1 ||
+          (visibleTicket && queueIds.indexOf(t.queueId) === -1 &&
+            (t.userId === user.id || t.userId === null || t.userId === undefined))
+        )
+      }
     );
 
     if (profile === "user") {
@@ -207,7 +229,7 @@ const TicketsListCustom = (props) => {
     } else {
       dispatch({ type: "LOAD_TICKETS", payload: tickets });
     }
-  }, [tickets, status, searchParam, queues, profile]);
+  }, [tickets, status, searchParam, queues, profile, visibleTicket]);
 
   useEffect(() => {
     const companyId = localStorage.getItem("companyId");
@@ -220,7 +242,7 @@ const TicketsListCustom = (props) => {
     const notBelongsToUserQueues = (ticket) =>
       ticket.queueId && selectedQueueIds.indexOf(ticket.queueId) === -1;
 
-    socket.on("ready", () => {
+    socket.on("connect", () => {
       if (status) {
         socket.emit("joinTickets", status);
       } else {
@@ -229,7 +251,7 @@ const TicketsListCustom = (props) => {
     });
 
     socket.on(`company-${companyId}-ticket`, (data) => {
-      
+
       if (data.action === "updateUnread") {
         dispatch({
           type: "RESET_UNREAD",
@@ -257,7 +279,7 @@ const TicketsListCustom = (props) => {
       const queueIds = queues.map((q) => q.id);
       if (
         profile === "user" &&
-        (queueIds.indexOf(data.ticket?.queue?.id) === -1 ||
+        (queueIds.indexOf(data.ticket.queue?.id) === -1 ||
           data.ticket.queue === null)
       ) {
         return;
@@ -271,13 +293,6 @@ const TicketsListCustom = (props) => {
       }
     });
 
-    socket.on(`company-${companyId}-presence`, (data) => {
-      dispatch({
-        type: "UPDATE_TICKET_PRESENCE",
-        payload: data,
-      });
-    });
-
     socket.on(`company-${companyId}-contact`, (data) => {
       if (data.action === "update") {
         dispatch({
@@ -287,17 +302,32 @@ const TicketsListCustom = (props) => {
       }
     });
 
+    socket.on(`company-${companyId}-presence`, (data) => {
+      dispatch({
+        type: "UPDATE_TICKET_PRESENCE",
+        payload: data,
+      });
+    });
+
     return () => {
       socket.disconnect();
     };
-  }, [status, showAll, user, selectedQueueIds, tags, users, profile, queues, socketManager]);
+  }, [status, showAll, user, selectedQueueIds, tags, users, profile, queues, visibleTicket, socketManager]);
+
+  // useEffect(() => {
+  //   if (typeof updateCount === "function") {
+  //     updateCount(ticketsList.length);
+  //   }
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [ticketsList]);
 
   useEffect(() => {
+    const count = ticketsList.filter(ticket => !ticket.isGroup).length;
     if (typeof updateCount === "function") {
-      updateCount(ticketsList.length);
+      updateCount(count);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ticketsList]);
+  }, [ticketsList, updateCount]);
 
   const loadMore = () => {
     setPageNumber((prevState) => prevState + 1);
@@ -333,10 +363,17 @@ const TicketsListCustom = (props) => {
               </p>
             </div>
           ) : (
+            // <>
+            //   {ticketsList.map((ticket) => (
+            //     <TicketListItem ticket={ticket} key={ticket.id} />
+            //   ))}
+            // </>
             <>
-              {ticketsList.map((ticket) => (
-                <TicketListItem ticket={ticket} key={ticket.id} />
-              ))}
+              {ticketsList
+                .filter(ticket => ticket.isGroup.toString() === "false")
+                .map((ticket) => (
+                  <TicketListItem ticket={ticket} key={ticket.id} />
+                ))}
             </>
           )}
           {loading && <TicketsListSkeleton />}

@@ -140,9 +140,6 @@ export default function ChatPopover() {
   useEffect(() => {
     const companyId = localStorage.getItem("companyId");
     const socket = socketManager.getSocket(companyId);
-    if (!socket) {
-      return () => {}; 
-    }
     
     socket.on(`company-${companyId}-chat`, (data) => {
       if (data.action === "new-message") {
@@ -160,7 +157,8 @@ export default function ChatPopover() {
     return () => {
       socket.disconnect();
     };
-  }, [socketManager, user.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [socketManager]);
 
   useEffect(() => {
     let unreadsCount = 0;
@@ -284,7 +282,7 @@ export default function ChatPopover() {
                 </ListItem>
               ))}
             {isArray(chats) && chats.length === 0 && (
-              <ListItemText primary={i18n.t("mainDrawer.appBar.notRegister")} />
+              <ListItemText primary={i18n.t("Notificação")} />
             )}
           </List>
         </Paper>

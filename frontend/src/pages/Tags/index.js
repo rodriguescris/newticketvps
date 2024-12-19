@@ -22,6 +22,7 @@ import InputAdornment from "@material-ui/core/InputAdornment";
 
 import DeleteOutlineIcon from "@material-ui/icons/DeleteOutline";
 import EditIcon from "@material-ui/icons/Edit";
+
 import MainContainer from "../../components/MainContainer";
 import MainHeader from "../../components/MainHeader";
 import MainHeaderButtonsWrapper from "../../components/MainHeaderButtonsWrapper";
@@ -34,7 +35,6 @@ import TagModal from "../../components/TagModal";
 import ConfirmationModal from "../../components/ConfirmationModal";
 import toastError from "../../errors/toastError";
 import { Chip } from "@material-ui/core";
-import { Tooltip } from "@material-ui/core";
 import { SocketContext } from "../../context/Socket/SocketContext";
 import { AuthContext } from "../../context/Auth/AuthContext";
 
@@ -150,7 +150,7 @@ const Tags = () => {
     return () => {
       socket.disconnect();
     };
-  }, [socketManager, user]);
+  }, [user, socketManager]);
 
   const handleOpenTagModal = () => {
     setSelectedTag(null);
@@ -199,7 +199,7 @@ const Tags = () => {
     }
   };
 
-return (
+  return (
     <MainContainer>
       <ConfirmationModal
         title={deletingTag && `${i18n.t("tags.confirmationModal.deleteTitle")}`}
@@ -238,7 +238,7 @@ return (
             onClick={handleOpenTagModal}
           >
             {i18n.t("tags.buttons.add")}
-          </Button>		  
+          </Button>
         </MainHeaderButtonsWrapper>
       </MainHeader>
       <Paper
